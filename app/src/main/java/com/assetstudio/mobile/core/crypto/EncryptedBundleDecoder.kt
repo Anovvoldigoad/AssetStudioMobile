@@ -156,7 +156,7 @@ object EncryptedBundleDecoder {
         ivBytes: ByteArray? = null,
         skipPrefix: Int = 0
     ): ByteArray {
-        require(skipPrefix in 0..data.size) { "前缀偏移越界" }
+        require(skipPrefix in 0..data.size) { "Offset awal di luar batas." }
         val prefix = data.copyOfRange(0, skipPrefix)
         val body = data.copyOfRange(skipPrefix, data.size)
         val decrypted = when (mode) {
@@ -178,10 +178,10 @@ object EncryptedBundleDecoder {
     /** AES 解密（自动识别 128/192/256），去除 PKCS5 填充失败的尾部容忍处理 */
     private fun aesDecrypt(data: ByteArray, key: ByteArray, iv: ByteArray?): ByteArray {
         require(key.size == 16 || key.size == 24 || key.size == 32) {
-            "AES 密钥长度须为 16/24/32 字节，当前 ${key.size}"
+            "Panjang kunci AES harus 16/24/32 byte. Saat ini: ${key.size}"
         }
         require(data.size >= key.size && data.size % 16 == 0) {
-            "密文长度须为 16 的倍数"
+            "Panjang data terenkripsi harus kelipatan 16 byte."
         }
         val cipher = javax.crypto.Cipher.getInstance(
             if (iv == null) "AES/ECB/PKCS5Padding" else "AES/CBC/PKCS5Padding"
@@ -190,7 +190,7 @@ object EncryptedBundleDecoder {
         if (iv == null) {
             cipher.init(javax.crypto.Cipher.DECRYPT_MODE, secret)
         } else {
-            require(iv.size == 16) { "IV 长度须为 16 字节" }
+            require(iv.size == 16) { "IV harus berukuran 16 byte." }
             cipher.init(
                 javax.crypto.Cipher.DECRYPT_MODE, secret,
                 javax.crypto.spec.IvParameterSpec(iv)
@@ -202,12 +202,12 @@ object EncryptedBundleDecoder {
     /** hex 字符串转字节（忽略空格/冒号分隔，长度须为偶数） */
     fun hexToBytes(hex: String): ByteArray {
         val clean = hex.replace(" ", "").replace(":", "").replace("\n", "")
-        require(clean.length % 2 == 0) { "hex 长度须为偶数" }
+        require(clean.length % 2 == 0) { "Panjang teks hex harus genap." }
         val out = ByteArray(clean.length / 2)
         for (i in out.indices) {
             val hi = Character.digit(clean[i * 2], 16)
             val lo = Character.digit(clean[i * 2 + 1], 16)
-            require(hi >= 0 && lo >= 0) { "包含非 hex 字符" }
+            require(hi >= 0 && lo >= 0) { "Ada karakter yang bukan heksadesimal." }
             out[i] = ((hi shl 4) or lo).toByte()
         }
         return out

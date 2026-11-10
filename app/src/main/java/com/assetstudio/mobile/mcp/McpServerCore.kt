@@ -108,7 +108,7 @@ object Json {
         parser.skipWhitespace()
         val value = parser.parseValue()
         parser.skipWhitespace()
-        if (!parser.atEnd()) throw JsonException("JSON 末尾存在多余字符（偏移 ${parser.i}）")
+        if (!parser.atEnd()) throw JsonException("Ada karakter tambahan di akhir JSON (offset ${parser.i})")
         return value
     }
 
@@ -125,7 +125,7 @@ object Json {
         }
 
         fun parseValue(): Any? {
-            if (atEnd()) throw JsonException("JSON 意外结束")
+            if (atEnd()) throw JsonException("JSON berakhir sebelum datanya lengkap.")
             return when (s[i]) {
                 '{' -> parseObject()
                 '[' -> parseArray()
@@ -139,7 +139,7 @@ object Json {
 
         private fun parseLiteral(word: String, value: Any?): Any? {
             if (i + word.length > s.length || !s.startsWith(word, i)) {
-                throw JsonException("非法字面量（偏移 $i）")
+                throw JsonException("Nilai JSON tidak valid (offset $i)")
             }
             i += word.length
             return value
@@ -168,7 +168,7 @@ object Json {
                         i++
                         return map
                     }
-                    else -> throw JsonException("对象中期待 ',' 或 '}'（偏移 $i）")
+                    else -> throw JsonException("Objek JSON seharusnya berisi ',' atau '}' (offset $i)")
                 }
             }
         }
@@ -191,18 +191,18 @@ object Json {
                         i++
                         return list
                     }
-                    else -> throw JsonException("数组中期待 ',' 或 ']'（偏移 $i）")
+                    else -> throw JsonException("Array JSON seharusnya berisi ',' atau ']' (offset $i)")
                 }
             }
         }
 
         private fun peek(): Char {
-            if (atEnd()) throw JsonException("JSON 意外结束")
+            if (atEnd()) throw JsonException("JSON berakhir sebelum datanya lengkap.")
             return s[i]
         }
 
         private fun expect(c: Char) {
-            if (atEnd() || s[i] != c) throw JsonException("期待 '$c'（偏移 $i）")
+            if (atEnd() || s[i] != c) throw JsonException("Diperlukan '$c' (offset $i)")
             i++
         }
 
@@ -210,7 +210,7 @@ object Json {
             expect('"')
             val sb = StringBuilder()
             while (true) {
-                if (atEnd()) throw JsonException("字符串未闭合")
+                if (atEnd()) throw JsonException("Tanda kutip teks tidak ditutup.")
                 when (val c = s[i]) {
                     '"' -> {
                         i++
@@ -218,7 +218,7 @@ object Json {
                     }
                     '\\' -> {
                         i++
-                        if (atEnd()) throw JsonException("非法转义（偏移 $i）")
+                        if (atEnd()) throw JsonException("Kode escape tidak valid (offset $i)")
                         when (val e = s[i]) {
                             '"' -> sb.append('"')
                             '\\' -> sb.append('\\')
@@ -229,19 +229,19 @@ object Json {
                             'r' -> sb.append('\r')
                             't' -> sb.append('\t')
                             'u' -> {
-                                if (i + 4 >= s.length) throw JsonException("非法 \\u 转义（偏移 $i）")
+                                if (i + 4 >= s.length) throw JsonException("Kode escape \\u tidak valid (offset $i)")
                                 val hex = s.substring(i + 1, i + 5)
                                 val code = hex.toIntOrNull(16)
-                                    ?: throw JsonException("非法 \\u 转义: $hex")
+                                    ?: throw JsonException("Kode escape \\u tidak valid: $hex")
                                 sb.append(code.toChar())
                                 i += 4
                             }
-                            else -> throw JsonException("非法转义 \\$e（偏移 $i）")
+                            else -> throw JsonException("Kode escape \\$e tidak valid (offset $i)")
                         }
                         i++
                     }
                     else -> {
-                        if (c.code < 0x20) throw JsonException("字符串含未转义控制字符（偏移 $i）")
+                        if (c.code < 0x20) throw JsonException("Teks memiliki karakter kontrol tanpa escape (offset $i)")
                         sb.append(c)
                         i++
                     }
@@ -252,20 +252,20 @@ object Json {
         private fun parseNumber(): Any {
             val start = i
             if (i < s.length && s[i] == '-') i++
-            if (atEnd() || !s[i].isDigit()) throw JsonException("非法数字（偏移 $start）")
+            if (atEnd() || !s[i].isDigit()) throw JsonException("Angka tidak valid (offset $start)")
             while (i < s.length && s[i].isDigit()) i++
             var isDouble = false
             if (i < s.length && s[i] == '.') {
                 isDouble = true
                 i++
-                if (atEnd() || !s[i].isDigit()) throw JsonException("非法小数（偏移 $i）")
+                if (atEnd() || !s[i].isDigit()) throw JsonException("Bilangan desimal tidak valid (offset $i)")
                 while (i < s.length && s[i].isDigit()) i++
             }
             if (i < s.length && (s[i] == 'e' || s[i] == 'E')) {
                 isDouble = true
                 i++
                 if (i < s.length && (s[i] == '+' || s[i] == '-')) i++
-                if (atEnd() || !s[i].isDigit()) throw JsonException("非法指数（偏移 $i）")
+                if (atEnd() || !s[i].isDigit()) throw JsonException("Pangkat angka tidak valid (offset $i)")
                 while (i < s.length && s[i].isDigit()) i++
             }
             val token = s.substring(start, i)
@@ -429,13 +429,13 @@ object Json {
             padding++
             length--
         }
-        if (padding > 2) throw JsonException("非法 Base64 填充")
+        if (padding > 2) throw JsonException("Padding Base64 tidak valid.")
         val out = ArrayList<Byte>((length * 3) / 4 + 3)
         var buffer = 0
         var bits = 0
         for (idx in 0 until length) {
             val v = B64_ALPHABET.indexOf(compact[idx])
-            if (v < 0) throw JsonException("非法 Base64 字符: ${compact[idx]}")
+            if (v < 0) throw JsonException("Karakter Base64 tidak valid: ${compact[idx]}")
             buffer = (buffer shl 6) or v
             bits += 6
             if (bits >= 8) {
@@ -541,86 +541,86 @@ class McpServerCore(
     private val tools: List<ToolSpec> = listOf(
         ToolSpec(
             "get_overview",
-            "获取已加载资源文件总览：文件列表、各类型数量分布与总大小，无需参数",
+            "Lihat ringkasan file aset yang sudah dimuat, jenis aset, jumlah, dan ukuran total. Tidak memerlukan parameter.",
             LinkedHashMap(),
             emptyList()
         ),
         ToolSpec(
             "list_assets",
-            "分页列出已加载的资源对象，可按类型（对象类名，如 Texture2D/Sprite/TextAsset/Mesh/MonoBehaviour/" +
-                "SkinnedMeshRenderer/MeshFilter）与关键字（名称或容器路径，不区分大小写）过滤",
+            "Tampilkan daftar aset per halaman. Bisa disaring berdasarkan jenis objek, misalnya Texture2D, Sprite, TextAsset, Mesh, MonoBehaviour, " +
+                "SkinnedMeshRenderer, atau MeshFilter; serta berdasarkan nama atau lokasi aset tanpa membedakan huruf besar/kecil.",
             linkedMapOf(
-                "type" to stringProp("按对象类名过滤，如 Texture2D、Sprite、TextAsset、Mesh、SkinnedMeshRenderer、MeshFilter、MonoBehaviour；不传返回全部类型"),
-                "keyword" to stringProp("关键字过滤：匹配资源名称或容器路径（不区分大小写）"),
-                "offset" to intProp("分页起始偏移", 0, 0, 1_000_000),
-                "limit" to intProp("每页数量", 50, 1, 200)
+                "type" to stringProp("Filter berdasarkan jenis objek, misalnya Texture2D, Sprite, TextAsset, Mesh, SkinnedMeshRenderer, MeshFilter, MonoBehaviour. Kosongkan untuk semua jenis."),
+                "keyword" to stringProp("Cari kata kunci pada nama atau lokasi aset tanpa membedakan huruf besar/kecil."),
+                "offset" to intProp("Posisi awal halaman", 0, 0, 1_000_000),
+                "limit" to intProp("Jumlah item per halaman", 50, 1, 200)
             ),
             emptyList()
         ),
         ToolSpec(
             "search_assets",
-            "按关键字搜索资源（匹配名称或容器路径，不区分大小写），返回前 limit 条",
+            "Cari aset berdasarkan nama atau lokasi tanpa membedakan huruf besar/kecil. Hasil dibatasi sejumlah limit.",
             linkedMapOf(
-                "keyword" to stringProp("搜索关键字（必填）：匹配资源名称或容器路径，不区分大小写"),
-                "limit" to intProp("最多返回条数", 20, 1, 200)
+                "keyword" to stringProp("Kata kunci wajib diisi. Mencocokkan nama atau lokasi aset tanpa membedakan huruf besar/kecil."),
+                "limit" to intProp("Jumlah hasil maksimal", 20, 1, 200)
             ),
             listOf("keyword")
         ),
         ToolSpec(
             "get_asset_detail",
-            "获取单个资源的详细信息：类型、名称、pathID、字节大小、所在文件、容器路径及类型专属字段" +
-                "（贴图宽高/格式/mip/流式信息、网格顶点/子网格/三角形数、SkinnedMeshRenderer 骨骼/材质槽/" +
-                "混合形状权重与引用网格统计、MeshFilter 网格引用、文本摘要、音频采样率/声道/时长等）",
+            "Lihat detail aset: jenis, nama, pathID, ukuran, file asal, lokasi, dan informasi khusus berdasarkan jenis aset" +
+                " (ukuran dan format tekstur, mip, data streaming, titik dan segitiga mesh, serta tulang dan slot material SkinnedMeshRenderer, " +
+                "bobot blend shape, referensi mesh, ringkasan teks, dan informasi audio).",
             linkedMapOf(
                 "pathId" to pathIdProp(),
-                "fileName" to stringProp("所在序列化文件名（可选，用于区分不同文件中相同的 PathID）")
+                "fileName" to stringProp("Nama file .assets (opsional, untuk membedakan PathID yang sama di beberapa file)")
             ),
             listOf("pathId")
         ),
         ToolSpec(
             "read_text_asset",
-            "读取 TextAsset 的文本内容（按 maxChars 截断）",
+            "Baca isi TextAsset; hasil dipotong sesuai maxChars.",
             linkedMapOf(
                 "pathId" to pathIdProp(),
-                "maxChars" to intProp("最多返回的字符数", 20_000, 100, 200_000)
+                "maxChars" to intProp("Jumlah karakter maksimal", 20_000, 100, 200_000)
             ),
             listOf("pathId")
         ),
         ToolSpec(
             "get_texture_preview",
-            "将 Texture2D / Sprite 解码并按最长边缩放为 PNG 预览图，以 base64 返回",
+            "Dekode Texture2D atau Sprite menjadi pratinjau PNG, sesuaikan panjang sisi terpanjang, lalu kembalikan sebagai base64.",
             linkedMapOf(
                 "pathId" to pathIdProp(),
-                "maxSize" to intProp("预览图最长边像素", 512, 64, 1024)
+                "maxSize" to intProp("Ukuran sisi terpanjang pratinjau (piksel)", 512, 64, 1024)
             ),
             listOf("pathId")
         ),
         ToolSpec(
             "get_texture_stats",
-            "统计所有 Texture2D：总数、格式分布（数量/磁盘字节/显存字节估算）、分辨率分布、" +
-                "内联与流式数量、按磁盘字节排序的 Top10，无需参数",
+            "Hitung semua Texture2D: jumlah, jenis format, ukuran data, perkiraan penggunaan memori grafis, dan resolusi; " +
+                "jumlah data langsung dan streaming, serta 10 tekstur terbesar. Tanpa parameter.",
             LinkedHashMap(),
             emptyList()
         ),
         ToolSpec(
             "dump_render_asset",
-            "将渲染相关资产转储为可读文本：Material（纹理槽/属性表）、Shader（子着色器/Pass 结构）、" +
-                "SkinnedMeshRenderer（网格引用/骨骼列表/材质槽/混合形状权重）、MeshFilter（网格引用）",
+            "Ekspor informasi rendering ke teks: Material (slot tekstur/properti), Shader (struktur Subshader dan Pass), " +
+                "SkinnedMeshRenderer (referensi mesh, tulang, slot material, dan bobot blend shape), serta MeshFilter (referensi mesh).",
             linkedMapOf(
                 "pathId" to pathIdProp(),
-                "fileName" to stringProp("所在序列化文件名（可选，用于区分不同文件中相同的 PathID）")
+                "fileName" to stringProp("Nama file .assets (opsional, untuk membedakan PathID yang sama di beberapa file)")
             ),
             listOf("pathId")
         ),
         ToolSpec(
             "export_asset",
-            "将资源导出到导出目录：png（Texture2D/Sprite）、txt（TextAsset 全文或 Material/Shader/" +
-                "SkinnedMeshRenderer/MeshFilter 转储）、obj（Mesh 或 SkinnedMeshRenderer/MeshFilter 引用的网格）、" +
-                "raw（原始序列化字节，扩展名 .dat），返回导出文件绝对路径",
+            "Ekspor aset ke folder ekspor: png (Texture2D/Sprite), txt (TextAsset atau informasi Material/Shader/" +
+                "SkinnedMeshRenderer/MeshFilter), obj (Mesh atau mesh yang dirujuk oleh komponen rendering), " +
+                "raw (data mentah dengan ekstensi .dat). Mengembalikan lokasi file hasil ekspor.",
             linkedMapOf(
                 "pathId" to pathIdProp(),
-                "fileName" to stringProp("所在序列化文件名（可选，用于区分不同文件中相同的 PathID）"),
-                "format" to enumProp("导出格式", EXPORT_FORMATS, "png")
+                "fileName" to stringProp("Nama file .assets (opsional, untuk membedakan PathID yang sama di beberapa file)"),
+                "format" to enumProp("Format ekspor", EXPORT_FORMATS, "png")
             ),
             listOf("pathId")
         )
@@ -629,7 +629,7 @@ class McpServerCore(
     private fun pathIdProp(): Map<String, Any?> =
         linkedMapOf(
             "type" to "integer",
-            "description" to "资源 PathID（必填，可通过 list_assets / search_assets 获取）"
+            "description" to "PathID aset (wajib; diperoleh dari list_assets atau search_assets)"
         )
 
     // ---------------------------- 入口 ----------------------------
@@ -639,7 +639,7 @@ class McpServerCore(
             handleInternal(raw)
         } catch (e: Exception) {
             McpOutcome.Reply(
-                Json.rpcError(null, McpProtocol.INTERNAL_ERROR, "内部错误: ${e.message ?: e.javaClass.simpleName}")
+                Json.rpcError(null, McpProtocol.INTERNAL_ERROR, "Kesalahan internal: ${e.message ?: e.javaClass.simpleName}")
             )
         }
     }
@@ -649,12 +649,12 @@ class McpServerCore(
             Json.parse(raw)
         } catch (e: Exception) {
             return McpOutcome.Reply(
-                Json.rpcError(null, McpProtocol.PARSE_ERROR, "JSON 解析失败: ${e.message ?: "非法 JSON"}")
+                Json.rpcError(null, McpProtocol.PARSE_ERROR, "Gagal membaca JSON: ${e.message ?: "非法 JSON"}")
             )
         }
         val msg = Json.obj(root)
             ?: return McpOutcome.Reply(
-                Json.rpcError(null, McpProtocol.INVALID_REQUEST, "请求必须是 JSON 对象（JSON-RPC 2.0）")
+                Json.rpcError(null, McpProtocol.INVALID_REQUEST, "Permintaan harus berupa objek JSON (JSON-RPC 2.0).")
             )
 
         val method = Json.str(msg["method"])
@@ -664,7 +664,7 @@ class McpServerCore(
                 return McpOutcome.Accepted
             }
             return McpOutcome.Reply(
-                Json.rpcError(null, McpProtocol.INVALID_REQUEST, "请求缺少 method 字段")
+                Json.rpcError(null, McpProtocol.INVALID_REQUEST, "Permintaan tidak memiliki kolom method.")
             )
         }
 
@@ -683,7 +683,7 @@ class McpServerCore(
             "tools/list" -> linkedMapOf("tools" to tools.map { it.toJson() })
             "tools/call" -> handleToolsCall(params)
             else -> return McpOutcome.Reply(
-                Json.rpcError(id, McpProtocol.METHOD_NOT_FOUND, "未知方法: $method")
+                Json.rpcError(id, McpProtocol.METHOD_NOT_FOUND, "Metode tidak dikenal: $method")
             )
         }
         return McpOutcome.Reply(Json.rpcResult(id, result))
@@ -703,16 +703,16 @@ class McpServerCore(
             "serverInfo" to linkedMapOf(
                 "name" to serverName,
                 "version" to serverVersion,
-                "author" to "醉莫"
+                "author" to "Zuimo"
             )
         )
     }
 
     private fun handleToolsCall(params: Map<String, Any?>): Map<String, Any?> {
         val name = Json.str(params["name"])
-            ?: return toolError("缺少工具名（params.name）")
+            ?: return toolError("Nama alat belum diisi (params.name).")
         if (tools.none { it.name == name }) {
-            return toolError("未知工具: $name")
+            return toolError("Alat tidak dikenal: $name")
         }
         val args = Json.obj(params["arguments"]) ?: LinkedHashMap()
         return try {
@@ -726,10 +726,10 @@ class McpServerCore(
                 "get_texture_stats" -> callGetTextureStats()
                 "dump_render_asset" -> callDumpRenderAsset(args)
                 "export_asset" -> callExportAsset(args)
-                else -> toolError("未知工具: $name")
+                else -> toolError("Alat tidak dikenal: $name")
             }
         } catch (e: Exception) {
-            toolError("工具 $name 执行失败: ${e.message ?: e.javaClass.simpleName}")
+            toolError("Alat $name gagal dijalankan: ${e.message ?: e.javaClass.simpleName}")
         }
     }
 
@@ -742,7 +742,7 @@ class McpServerCore(
     // ---------------------------- 工具实现 ----------------------------
 
     private fun callGetOverview(): Map<String, Any?> {
-        val src = source() ?: return toolError("尚未加载任何资源文件")
+        val src = source() ?: return toolError("Belum ada file aset yang dimuat.")
         val files = src.loadedFiles()
 
         // 分页扫描全部对象（limit 上限 200，循环取完为止）
@@ -775,13 +775,13 @@ class McpServerCore(
         )
 
         val text = buildString {
-            append("已加载 ${files.size} 个文件，共 ${entries.size} 个资源，合计 ${fmtBytes(totalBytes)}\n")
+            append("${files.size} file dimuat, ${entries.size} aset ditemukan. Ukuran total: ${fmtBytes(totalBytes)}\n")
             for (f in files) {
-                append("文件: ${f.fileName}（Unity ${f.unityVersion}，${f.objectCount} 个对象）\n")
+                append("File: ${f.fileName} (Unity ${f.unityVersion}, ${f.objectCount} objek)\n")
             }
-            append("类型分布: ")
+            append("Sebaran jenis aset: ")
             append(
-                if (sortedTypes.isEmpty()) "（无）"
+                if (sortedTypes.isEmpty()) "Tidak ada"
                 else sortedTypes.joinToString(", ") { "${it.key} x${it.value}" }
             )
         }
@@ -789,7 +789,7 @@ class McpServerCore(
     }
 
     private fun callListAssets(args: Map<String, Any?>): Map<String, Any?> {
-        val src = source() ?: return toolError("尚未加载任何资源文件")
+        val src = source() ?: return toolError("Belum ada file aset yang dimuat.")
         val type = optionalString(args, "type")
         val keyword = optionalString(args, "keyword")
         val offset = intArg(args, "offset", 0, 0, 1_000_000)
@@ -804,10 +804,10 @@ class McpServerCore(
         )
         val text = buildString {
             append(
-                "共 ${page.total} 个资源（offset=${page.offset}, limit=${page.limit}），本页 ${page.items.size} 条"
+                "Total ${page.total} aset (offset=${page.offset}, limit=${page.limit}), halaman ini ${page.items.size} aset"
             )
-            if (type != null) append("，类型过滤: $type")
-            if (keyword != null) append("，关键字: $keyword")
+            if (type != null) append(", jenis: $type")
+            if (keyword != null) append(", kata kunci: $keyword")
             append('\n')
             for (e in page.items) {
                 append("[${e.type}] ${e.name} (pathId=${e.pathId}, ${fmtBytes(e.byteSize)}, ${e.fileName}")
@@ -819,9 +819,9 @@ class McpServerCore(
     }
 
     private fun callSearchAssets(args: Map<String, Any?>): Map<String, Any?> {
-        val src = source() ?: return toolError("尚未加载任何资源文件")
+        val src = source() ?: return toolError("Belum ada file aset yang dimuat.")
         val keyword = Json.str(args["keyword"])
-        if (keyword.isNullOrEmpty()) return toolError("缺少必填参数 keyword")
+        if (keyword.isNullOrEmpty()) return toolError("Parameter wajib keyword belum diisi.")
         val limit = intArg(args, "limit", 20, 1, 200)
 
         val results = src.searchAssets(keyword, limit)
@@ -831,7 +831,7 @@ class McpServerCore(
             "results" to results.map { it.toJson() }
         )
         val text = buildString {
-            append("关键字「$keyword」命中 ${results.size} 条（最多返回 $limit 条）\n")
+            append("Kata kunci '$keyword' cocok dengan ${results.size} aset (maksimal $limit hasil)\n")
             for (e in results) {
                 append("[${e.type}] ${e.name} (pathId=${e.pathId}, ${fmtBytes(e.byteSize)}, ${e.fileName}")
                 if (e.containerPath.isNotEmpty()) append(", ${e.containerPath}")
@@ -842,8 +842,8 @@ class McpServerCore(
     }
 
     private fun callGetAssetDetail(args: Map<String, Any?>): Map<String, Any?> {
-        val src = source() ?: return toolError("尚未加载任何资源文件")
-        val pathId = Json.long(args["pathId"]) ?: return toolError("缺少必填参数 pathId")
+        val src = source() ?: return toolError("Belum ada file aset yang dimuat.")
+        val pathId = Json.long(args["pathId"]) ?: return toolError("Parameter wajib pathId belum diisi.")
         val fileName = optionalString(args, "fileName")
 
         val detail = src.assetDetail(pathId, fileName)
@@ -852,12 +852,12 @@ class McpServerCore(
     }
 
     private fun callReadTextAsset(args: Map<String, Any?>): Map<String, Any?> {
-        val src = source() ?: return toolError("尚未加载任何资源文件")
-        val pathId = Json.long(args["pathId"]) ?: return toolError("缺少必填参数 pathId")
+        val src = source() ?: return toolError("Belum ada file aset yang dimuat.")
+        val pathId = Json.long(args["pathId"]) ?: return toolError("Parameter wajib pathId belum diisi.")
         val maxChars = intArg(args, "maxChars", 20_000, 100, 200_000)
 
         val full = src.textContent(pathId, null)
-            ?: return toolError("pathId=$pathId 不是 TextAsset（或不存在）")
+            ?: return toolError("pathId=$pathId bukan TextAsset atau tidak ditemukan.")
         val truncated = full.length > maxChars
         val content = if (truncated) full.substring(0, maxChars) else full
         val structured = linkedMapOf(
@@ -867,24 +867,24 @@ class McpServerCore(
             "truncated" to truncated,
             "content" to content
         )
-        val note = if (truncated) "\n（共 ${full.length} 字符，已截断至 $maxChars）" else ""
+        val note = if (truncated) "\n (total ${full.length} karakter, dipotong menjadi $maxChars)" else ""
         return toolResult(listOf(textContent(content + note)), structured)
     }
 
     private fun callGetTexturePreview(args: Map<String, Any?>): Map<String, Any?> {
-        val src = source() ?: return toolError("尚未加载任何资源文件")
-        val pathId = Json.long(args["pathId"]) ?: return toolError("缺少必填参数 pathId")
+        val src = source() ?: return toolError("Belum ada file aset yang dimuat.")
+        val pathId = Json.long(args["pathId"]) ?: return toolError("Parameter wajib pathId belum diisi.")
         val maxSize = intArg(args, "maxSize", 512, 64, 1024)
 
         val png = src.texturePreviewPng(pathId, maxSize)
-            ?: return toolError("pathId=$pathId 不是 Texture2D / Sprite（或解码失败）")
+            ?: return toolError("pathId=$pathId bukan Texture2D/Sprite atau gagal didekode.")
         val content = listOf(
             linkedMapOf<String, Any?>(
                 "type" to "image",
                 "data" to Json.base64Encode(png),
                 "mimeType" to "image/png"
             ),
-            textContent("已生成 PNG 预览：${png.size} 字节（maxSize=$maxSize）")
+            textContent("Pratinjau PNG dibuat: ${png.size} byte (maxSize=$maxSize)")
         )
         val structured = linkedMapOf(
             "pathId" to pathId,
@@ -895,18 +895,18 @@ class McpServerCore(
     }
 
     private fun callGetTextureStats(): Map<String, Any?> {
-        val src = source() ?: return toolError("尚未加载任何资源文件")
+        val src = source() ?: return toolError("Belum ada file aset yang dimuat.")
         val stats = src.textureStats()
         return toolResult(listOf(textContent(renderMapText(stats))), LinkedHashMap(stats))
     }
 
     private fun callDumpRenderAsset(args: Map<String, Any?>): Map<String, Any?> {
-        val src = source() ?: return toolError("尚未加载任何资源文件")
-        val pathId = Json.long(args["pathId"]) ?: return toolError("缺少必填参数 pathId")
+        val src = source() ?: return toolError("Belum ada file aset yang dimuat.")
+        val pathId = Json.long(args["pathId"]) ?: return toolError("Parameter wajib pathId belum diisi.")
         val fileName = optionalString(args, "fileName") // 空串按 null 处理
 
         val dump = src.renderDump(pathId, fileName)
-            ?: return toolError("pathId=$pathId 不是 Material / Shader（或不存在）")
+            ?: return toolError("pathId=$pathId bukan Material/Shader atau tidak ditemukan.")
         val structured = linkedMapOf(
             "pathId" to pathId,
             "fileName" to (fileName ?: ""),
@@ -917,12 +917,12 @@ class McpServerCore(
     }
 
     private fun callExportAsset(args: Map<String, Any?>): Map<String, Any?> {
-        val src = source() ?: return toolError("尚未加载任何资源文件")
-        val pathId = Json.long(args["pathId"]) ?: return toolError("缺少必填参数 pathId")
+        val src = source() ?: return toolError("Belum ada file aset yang dimuat.")
+        val pathId = Json.long(args["pathId"]) ?: return toolError("Parameter wajib pathId belum diisi.")
         val fileName = optionalString(args, "fileName")
         val format = (Json.str(args["format"]) ?: "png").lowercase(Locale.ROOT)
         if (format !in EXPORT_FORMATS) {
-            return toolError("不支持的导出格式「$format」，可选：${EXPORT_FORMATS.joinToString("/")}")
+            return toolError("Format ekspor '$format' tidak didukung. Pilihan: ${EXPORT_FORMATS.joinToString("/")}")
         }
 
         val path = src.exportAsset(pathId, fileName, format)
@@ -933,7 +933,7 @@ class McpServerCore(
             "path" to path,
             "fileName" to baseName
         )
-        return toolResult(listOf(textContent("已导出 $format：$path")), structured)
+        return toolResult(listOf(textContent("$format berhasil diekspor: $path")), structured)
     }
 
     // ---------------------------- 结果构建 ----------------------------
@@ -957,7 +957,7 @@ class McpServerCore(
         linkedMapOf("type" to "text", "text" to text)
 
     private fun notFoundMessage(pathId: Long, fileName: String?): String =
-        if (fileName != null) "pathId=$pathId 不存在（fileName=$fileName）" else "pathId=$pathId 不存在"
+        if (fileName != null) "pathId=$pathId tidak ditemukan (fileName=$fileName)" else "pathId=$pathId tidak ditemukan"
 
     // ---------------------------- 参数辅助 ----------------------------
 
@@ -991,7 +991,7 @@ class McpServerCore(
                     }
                 }
                 is List<*> -> {
-                    sb.append(k).append(" (").append(v.size).append(" 项):\n")
+                    sb.append(k).append(" (").append(v.size).append(" aset):\n")
                     for (item in v) {
                         sb.append("  - ").append(renderInline(item)).append('\n')
                     }
