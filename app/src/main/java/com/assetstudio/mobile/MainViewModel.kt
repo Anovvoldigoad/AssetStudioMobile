@@ -750,7 +750,7 @@ class MainViewModel : ViewModel() {
             // v1.10.0：label 仅内部区分用途，用户侧文案不再出现「批次」字样
             val done = doneBefore + index + 1
             _loadState.value = LoadState.Loading(
-                "Sedang memuat${if (label.isNotEmpty()) "（$label）" else ""} $done/$grandTotal：${file.name}",
+                "Sedang memuat${if (label.isNotEmpty()) " ($label)" else ""} $done/$grandTotal: ${file.name}",
                 progress = done.toFloat() / grandTotal,
                 current = done, total = grandTotal, cancellable = true
             )
@@ -1645,7 +1645,7 @@ class MainViewModel : ViewModel() {
                 _toast.value = "Server MCP aktif (port $port)"
             } else {
                 _mcpStatus.value = null
-                _toast.value = "Gagal menjalankan MCP: ${McpManager.lastStartError ?: "未知原因"}"
+                _toast.value = "Gagal menjalankan MCP: ${McpManager.lastStartError ?: "penyebab tidak diketahui"}"
             }
             _mcpStarting.value = false
         }

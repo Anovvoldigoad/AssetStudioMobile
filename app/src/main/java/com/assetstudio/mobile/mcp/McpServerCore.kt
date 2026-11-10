@@ -649,7 +649,7 @@ class McpServerCore(
             Json.parse(raw)
         } catch (e: Exception) {
             return McpOutcome.Reply(
-                Json.rpcError(null, McpProtocol.PARSE_ERROR, "Gagal membaca JSON: ${e.message ?: "非法 JSON"}")
+                Json.rpcError(null, McpProtocol.PARSE_ERROR, "Gagal membaca JSON: ${e.message ?: "JSON tidak valid"}")
             )
         }
         val msg = Json.obj(root)

@@ -311,7 +311,7 @@ class AppMcpSource(
 
     override fun exportAsset(pathId: Long, fileName: String?, format: String): String {
         val obj = findByPathId(pathId, fileName)
-            ?: throw IllegalArgumentException("pathId=$pathId  tidak ditemukan (fileName=${fileName ?: "任意"}）")
+            ?: throw IllegalArgumentException("pathId=$pathId tidak ditemukan (fileName=${fileName ?: "apa saja"})")
         if (!exportDir.exists() && !exportDir.mkdirs()) {
             throw IllegalStateException("Tidak dapat membuat folder ekspor: ${exportDir.absolutePath}")
         }
