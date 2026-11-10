@@ -311,9 +311,9 @@ class AppMcpSource(
 
     override fun exportAsset(pathId: Long, fileName: String?, format: String): String {
         val obj = findByPathId(pathId, fileName)
-            ?: throw IllegalArgumentException("pathId=$pathId 的资产不存在（fileName=${fileName ?: "任意"}）")
+            ?: throw IllegalArgumentException("pathId=$pathId tidak ditemukan (fileName=${fileName ?: "apa saja"})")
         if (!exportDir.exists() && !exportDir.mkdirs()) {
-            throw IllegalStateException("无法创建导出目录: ${exportDir.absolutePath}")
+            throw IllegalStateException("Tidak dapat membuat folder ekspor: ${exportDir.absolutePath}")
         }
         val baseName = safeFileName(obj.displayName)
         return when (format.lowercase()) {
@@ -322,19 +322,19 @@ class AppMcpSource(
                     is Texture2D -> AssetExporter.decodeTexture(obj)
                     is Sprite -> AssetExporter.decodeSprite(obj)
                     else -> throw IllegalArgumentException(
-                        "pathId=$pathId（${typeName(obj)}）不是 Texture2D / Sprite，无法导出 PNG"
+                        "pathId=$pathId (${typeName(obj)})bukan Texture2D atau Sprite, jadi tidak dapat diekspor sebagai PNG."
                     )
-                } ?: throw IllegalArgumentException("贴图解码失败（格式不支持或数据缺失）")
+                } ?: throw IllegalArgumentException("Gagal membuka tekstur (format tidak didukung atau data tidak ada)")
                 val bytes = try {
                     val out = ByteArrayOutputStream()
                     if (!bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)) {
-                        throw IllegalArgumentException("PNG 编码失败")
+                        throw IllegalArgumentException("Gagal membuat PNG")
                     }
                     out.toByteArray()
                 } catch (e: IllegalArgumentException) {
                     throw e
                 } catch (e: Exception) {
-                    throw IllegalArgumentException("PNG 编码失败: ${e.message}")
+                    throw IllegalArgumentException("Gagal membuat PNG: ${e.message}")
                 }
                 writeUniqueFile(baseName, "png", bytes)
             }
@@ -346,7 +346,7 @@ class AppMcpSource(
                     is SkinnedMeshRenderer -> RenderDumper.dumpSkinnedMeshRenderer(obj)
                     is MeshFilter -> RenderDumper.dumpMeshFilter(obj)
                     else -> throw IllegalArgumentException(
-                        "pathId=$pathId（${typeName(obj)}）不是 TextAsset / Material / Shader / SkinnedMeshRenderer / MeshFilter，无法导出文本"
+                        "pathId=$pathId (${typeName(obj)})bukan jenis aset yang bisa diekspor sebagai teks."
                     )
                 }
                 writeUniqueFile(baseName, "txt", text.toByteArray(Charsets.UTF_8))
@@ -359,18 +359,18 @@ class AppMcpSource(
                     is MeshFilter -> obj.m_Mesh.tryGet<Mesh>()
                     else -> null
                 } ?: throw IllegalArgumentException(
-                    "pathId=$pathId（${typeName(obj)}）不是 Mesh / SkinnedMeshRenderer / MeshFilter，" +
-                        "或其引用的网格指向未加载的外部文件，无法导出 OBJ"
+                    "pathId=$pathId (${typeName(obj)})bukan Mesh, SkinnedMeshRenderer, atau MeshFilter, " +
+                        "atau mesh yang dirujuk belum dimuat dari file eksternal. Tidak bisa mengekspor OBJ."
                 )
                 val text = ObjExporter.write(mesh)
                 writeUniqueFile(baseName, "obj", text.toByteArray(Charsets.UTF_8))
             }
             "raw" -> {
                 val info = obj.assetsFile.m_Objects.firstOrNull { it.m_PathID == obj.m_PathID }
-                    ?: throw IllegalArgumentException("pathId=$pathId 的对象信息缺失")
+                    ?: throw IllegalArgumentException("pathId=$pathId  tidak memiliki informasi objek.")
                 writeUniqueFile(baseName, "dat", obj.assetsFile.getRawObjectBytes(info))
             }
-            else -> throw IllegalArgumentException("不支持的导出格式: $format（可选 png/txt/obj/raw）")
+            else -> throw IllegalArgumentException("Format ekspor tidak didukung: $format (pilih png/txt/obj/raw)")
         }
     }
 

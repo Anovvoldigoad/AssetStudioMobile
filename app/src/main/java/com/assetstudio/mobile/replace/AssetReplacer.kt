@@ -116,7 +116,7 @@ object AssetReplacer {
      *   解压后逐个替换游戏文件即可）。
      */
     fun replaceTexturesBatch(entries: List<BatchEntry>): BatchResult {
-        if (entries.isEmpty()) throw ReplaceException("没有可替换的贴图")
+        if (entries.isEmpty()) throw ReplaceException("Tidak ada tekstur yang bisa diganti")
 
         // ---------- 1. 逐张解码图片并编码为对象字节（图片用完即释放，控制内存峰值） ----------
         class Pending(val bytes: ByteArray, val kept: Boolean)
@@ -132,23 +132,23 @@ object AssetReplacer {
             var bmp: Bitmap? = null
             try {
                 bmp = android.graphics.BitmapFactory.decodeFile(entry.imageFile.absolutePath)
-                    ?: throw ReplaceException("图片读取失败：${entry.imageFile.name}")
+                    ?: throw ReplaceException("Gagal membaca gambar: ${entry.imageFile.name}")
                 val enc = encodeTexture(entry.texture, bmp, entry.keepFormat)
                 byFile.getOrPut(entry.texture.assetsFile) { LinkedHashMap() }
                     .put(entry.texture.m_PathID, Pending(enc.objectBytes, enc.keptOriginal))
                 succeeded.add(name)
                 if (enc.keptOriginal) keptCount++ else fallbackCount++
             } catch (e: OutOfMemoryError) {
-                failed.add(BatchFailure(name, "内存不足（图片 ${entry.imageFile.name} 过大）"))
+                failed.add(BatchFailure(name, "RAM tidak cukup (gambar ${entry.imageFile.name} terlalu besar)"))
             } catch (e: Exception) {
-                failed.add(BatchFailure(name, e.message ?: "编码失败"))
+                failed.add(BatchFailure(name, e.message ?: "Gagal mengodekan"))
             } finally {
                 bmp?.recycle()
             }
         }
         if (byFile.isEmpty()) {
             throw ReplaceException(
-                "全部贴图替换失败：\n" + failed.joinToString("\n") { "  ${it.textureName}: ${it.reason}" }
+                "Semua penggantian tekstur gagal:\n" + failed.joinToString("\n") { "  ${it.textureName}: ${it.reason}" }
             )
         }
 
@@ -161,7 +161,7 @@ object AssetReplacer {
                     pendings.mapValues { (_, p) -> p.bytes }
                 )
             } catch (e: OutOfMemoryError) {
-                throw ReplaceException("内存不足：${file.fileName} 重写失败，建议减少同时替换的贴图数量")
+                throw ReplaceException("RAM tidak cukup untuk menulis ulang ${file.fileName}. Kurangi jumlah tekstur yang diganti sekaligus.")
             }
         }
 
@@ -245,7 +245,7 @@ object AssetReplacer {
         val w = newBitmap.width
         val h = newBitmap.height
         if (w <= 0 || h <= 0 || w > 16384 || h > 16384) {
-            throw ReplaceException("不支持的图片尺寸 ${w}x${h}")
+            throw ReplaceException("Ukuran gambar tidak didukung: ${w}x${h}")
         }
         val pixels = IntArray(w * h)
         val safeBitmap = if (newBitmap.config == Bitmap.Config.ARGB_8888) newBitmap
@@ -276,7 +276,7 @@ object AssetReplacer {
 
         val encoded = TextureEncoder.encode(pixels, w, h, targetFormat, mipCount)
             ?: throw ReplaceException(
-                TextureEncoder.lastError ?: "编码失败（${targetFormat}）"
+                TextureEncoder.lastError ?: "Gagal mengodekan (${targetFormat})"
             )
 
         // ---------- 3. 重建对象字节 ----------
@@ -309,13 +309,13 @@ object AssetReplacer {
                     val bundle = ref.ref.bundle
                     if (!BundleRepacker.canRepack(bundle)) {
                         throw BundleRepacker.RepackException(
-                            "该资产位于旧版 ${bundle.m_Header.signature} Bundle 内，暂不支持重打包"
+                            "Aset ini berada di file versi lama ${bundle.m_Header.signature} Bundle, yang belum mendukung pengemasan ulang."
                         )
                     }
                     // 找到对应条目并替换
                     val entry = bundle.fileList.firstOrNull { it.path == ref.ref.entryPath }
                         ?: bundle.fileList.firstOrNull { it.fileName == assetsFile.fileName }
-                        ?: throw ReplaceException("Bundle 条目未找到: ${ref.ref.entryPath}")
+                        ?: throw ReplaceException("Entri Bundle tidak ditemukan: ${ref.ref.entryPath}")
                     entry.data = current
                     current = BundleRepacker.repack(bundle)
                     suggested = assetsFile.rootFileName.ifEmpty { "repacked.bundle" }
@@ -323,7 +323,7 @@ object AssetReplacer {
                 is SourceRef.Web -> {
                     val web = ref.ref.web
                     val entry = web.fileList.firstOrNull { it.path == ref.ref.entryPath }
-                        ?: throw ReplaceException("Web 条目未找到: ${ref.ref.entryPath}")
+                        ?: throw ReplaceException("Entri Web tidak ditemukan: ${ref.ref.entryPath}")
                     entry.data = current
                     current = WebFileWriter.write(web.fileList)
                     suggested = assetsFile.rootFileName.ifEmpty { "repacked.unity3d" }

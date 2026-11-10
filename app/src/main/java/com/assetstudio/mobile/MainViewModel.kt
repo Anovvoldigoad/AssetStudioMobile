@@ -203,7 +203,7 @@ class MainViewModel : ViewModel() {
         lastFiles = emptyList()
         cancelLoadRequested = false
         viewModelScope.launch {
-            _loadState.value = LoadState.Loading("正在读取文件…", cancellable = true)
+            _loadState.value = LoadState.Loading("Sedang membaca file…", cancellable = true)
             val resolver = context.contentResolver
             val spec = manualDecryptSpec
             manualDecryptSpec = null // 一次性参数
@@ -224,13 +224,13 @@ class MainViewModel : ViewModel() {
                             val size = resolver.queryFileSize(uri)
                             if (size > MAX_INPUT_BYTES) {
                                 errors.add(
-                                    "$name 大小 ${size / 1024 / 1024}MB，" +
-                                        "超过上限 ${MAX_INPUT_BYTES / 1024 / 1024}MB"
+                                    "$name berukuran ${size / 1024 / 1024} MB, " +
+                                        "melebihi batas ${MAX_INPUT_BYTES / 1024 / 1024} MB"
                                 )
                                 continue
                             }
                             var bytes = resolver.openInputStream(uri)?.use { it.readBytes() }
-                                ?: throw IllegalStateException("无法读取 $name")
+                                ?: throw IllegalStateException("Tidak dapat membaca $name")
                             // 手动解密（用户提供的已知密钥）先行，失败直接报错
                             if (spec != null) {
                                 bytes = try {
@@ -241,7 +241,7 @@ class MainViewModel : ViewModel() {
                                         skipPrefix = spec.skipPrefix
                                     )
                                 } catch (e: Exception) {
-                                    throw IllegalStateException("手动解密失败：${e.message}")
+                                    throw IllegalStateException("Dekripsi manual gagal: ${e.message}")
                                 }
                             }
                             m.loadFileDeferred(name, bytes)
@@ -276,7 +276,7 @@ class MainViewModel : ViewModel() {
         lastUris = emptyList()
         cancelLoadRequested = false
         viewModelScope.launch {
-            _loadState.value = LoadState.Loading("正在读取文件…", cancellable = true)
+            _loadState.value = LoadState.Loading("Sedang membaca file…", cancellable = true)
             val spec = manualDecryptSpec
             manualDecryptSpec = null // 一次性参数
             // v1.10.2 修复（不清空加载新文件不显示）：
@@ -299,8 +299,8 @@ class MainViewModel : ViewModel() {
                             val size = file.length()
                             if (size > MAX_INPUT_BYTES) {
                                 errors.add(
-                                    "${file.name}: 大小 ${size / 1024 / 1024}MB，" +
-                                        "超过上限 ${MAX_INPUT_BYTES / 1024 / 1024}MB"
+                                    "${file.name}: berukuran ${size / 1024 / 1024} MB, " +
+                                        "melebihi batas ${MAX_INPUT_BYTES / 1024 / 1024} MB"
                                 )
                                 continue
                             }
@@ -314,7 +314,7 @@ class MainViewModel : ViewModel() {
                                         skipPrefix = spec.skipPrefix
                                     )
                                 } catch (e: Exception) {
-                                    throw IllegalStateException("手动解密失败：${e.message}")
+                                    throw IllegalStateException("Dekripsi manual gagal: ${e.message}")
                                 }
                             }
                             m.loadFileDeferred(file.name, bytes)
@@ -455,7 +455,7 @@ class MainViewModel : ViewModel() {
      */
     fun scanFolder(folder: java.io.File, recursive: Boolean) {
         viewModelScope.launch {
-            _loadState.value = LoadState.Loading("正在扫描 ${folder.name} …")
+            _loadState.value = LoadState.Loading("Sedang memindai ${folder.name}…")
             val result = withContext(Dispatchers.IO) {
                 try {
                     scanFolderInternal(folder, recursive)
@@ -515,7 +515,7 @@ class MainViewModel : ViewModel() {
             scannedCount = scanned,
             skippedTooBig = tooBig,
             truncatedCount = truncated,
-            scanError = if (unreadableDir) "部分子目录无法读取（权限受限），已跳过" else null
+            scanError = if (unreadableDir) "Beberapa subfolder tidak bisa dibaca karena izin terbatas dan dilewati." else null
         )
     }
 
@@ -586,7 +586,7 @@ class MainViewModel : ViewModel() {
      */
     fun loadFolder(scan: FolderScanResult) {
         if (scan.files.isEmpty()) {
-            _loadState.value = LoadState.Failed("文件夹中没有可加载的资源文件")
+            _loadState.value = LoadState.Failed("Tidak ada file aset yang didukung di folder ini.")
             return
         }
         cancelLoadRequested = false
@@ -750,7 +750,7 @@ class MainViewModel : ViewModel() {
             // v1.10.0：label 仅内部区分用途，用户侧文案不再出现「批次」字样
             val done = doneBefore + index + 1
             _loadState.value = LoadState.Loading(
-                "正在加载${if (label.isNotEmpty()) "（$label）" else ""} $done/$grandTotal：${file.name}",
+                "Sedang memuat${if (label.isNotEmpty()) " ($label)" else ""} $done/$grandTotal: ${file.name}",
                 progress = done.toFloat() / grandTotal,
                 current = done, total = grandTotal, cancellable = true
             )
@@ -798,7 +798,7 @@ class MainViewModel : ViewModel() {
             unconstructed = m.finishLoading { heapUsedRatioAfterGc() > HEAP_STOP_PARSING }
             strippedNodes = m.stripTypeTrees()
         } catch (e: Throwable) {
-            m.errors.add("批次收尾失败：${e.message ?: e.toString()}")
+            m.errors.add("Gagal menyelesaikan pemuatan: ${e.message ?: e.toString()}")
         }
         System.gc()
         // 未装下的文件（本批装不下的在前、停止位置起的在后）：供下一批次继续
@@ -850,7 +850,7 @@ class MainViewModel : ViewModel() {
             withContext(Dispatchers.IO) { evictSessionsForNewBatch() }
             // v1.10.0：对用户只讲「第几个文件」——内部换批（腾内存）完全隐形
             _loadState.value = LoadState.Loading(
-                "正在加载 $doneBefore/$grandTotal …",
+                "Sedang memuat $doneBefore/$grandTotal …",
                 progress = doneBefore.toFloat() / grandTotal,
                 current = doneBefore, total = grandTotal, cancellable = true
             )
@@ -870,19 +870,19 @@ class MainViewModel : ViewModel() {
                 val id = nextSessionId++
                 val detail = buildString {
                     if (outcome.unconstructed > 0) {
-                        append("⚠ ${outcome.unconstructed} 个文件因内存不足未解析对象")
+                        append("⚠ ${outcome.unconstructed}  file tidak dapat diproses karena RAM tidak cukup.")
                     }
                     if (outcome.overBudget.isNotEmpty()) {
                         if (isNotEmpty()) append("；")
-                        append("跳过 ${outcome.overBudget.size} 个大文件")
+                        append("Melewati ${outcome.overBudget.size} file yang terlalu besar")
                     }
                     if (outcome.failures.isNotEmpty()) {
                         if (isNotEmpty()) append("；")
-                        append("解析失败 ${outcome.failures.size} 个")
+                        append("Gagal membaca ${outcome.failures.size} file")
                     }
                 }
                 val session = buildSession(
-                    id, "「$folderName」批次 $batchNo", outcome.loadedFiles, m, detail,
+                    id, "$folderName (bagian $batchNo)", outcome.loadedFiles, m, detail,
                     originKey = "folder:$folderName:$batchNo"
                 )
                 totalAssets += session.assetCount
@@ -901,8 +901,8 @@ class MainViewModel : ViewModel() {
         rebuildUnifiedAssets()
         if (totalOk > 0 && _sessions.value.isNotEmpty()) {
             val lazyCount = _assets.value.count { it.isLazy }
-            _toast.value = "加载完成：${_assets.value.size} 个资产已列出" +
-                if (lazyCount > 0) "（$lazyCount 项点开时自动从磁盘载入）" else ""
+            _toast.value = "Pemuatan selesai: ${_assets.value.size}  aset sudah ditampilkan" +
+                if (lazyCount > 0) " ($lazyCount  aset dimuat dari penyimpanan saat dibuka)" else ""
         }
         _decryptNote.value = decryptNotes.joinToString("\n").ifEmpty { null }
 
@@ -910,10 +910,10 @@ class MainViewModel : ViewModel() {
         _loadState.value = when {
             !anyLoaded -> LoadState.Failed(
                 buildString {
-                    append("没有文件能成功加载")
+                    append("Tidak ada file yang berhasil dimuat")
                     if (allFailures.isNotEmpty()) append("：${allFailures.first()}")
-                    if (allTooBig.isNotEmpty()) append("；${allTooBig.size} 个超过单文件上限")
-                    if (cancelled) append("（已取消）")
+                    if (allTooBig.isNotEmpty()) append("; ${allTooBig.size}  file melebihi batas per file")
+                    if (cancelled) append(" (dibatalkan)")
                 }
             )
             // v1.10.1：rebuildUnifiedAssets 在加载中不再覆盖 Loading（防汇总卡闪现），
@@ -926,29 +926,29 @@ class MainViewModel : ViewModel() {
         // v1.10.0：汇总文案只讲「文件 / 资产 / 磁盘暂存」——批次是内部实现，不再暴露
         val lazyTotal = _assets.value.count { it.isLazy }
         _folderSummary.value = buildString {
-            append(if (resumed) "继续加载" else "文件夹加载")
-            append("完成：成功 $totalOk 个文件、${_assets.value.size} 个资产")
-            if (cancelled) append("（已取消，可继续装载剩余文件）")
+            append(if (resumed) "Lanjut memuat" else "Pemuatan folder")
+            append(" selesai: $totalOk file berhasil dimuat, ${_assets.value.size} aset ditemukan")
+            if (cancelled) append(" (dibatalkan; file yang tersisa bisa dilanjutkan)")
             if (lazyTotal > 0) {
-                append("\n其中 $lazyTotal 个资产暂存磁盘（手机内存一次装不下这么多），" +
-                    "列表照常完整，点开某个资产时会自动从磁盘载入它所在的那一个文件。")
+                append("\nSebanyak $lazyTotal aset disimpan sementara di penyimpanan karena RAM HP terbatas. " +
+                    "Daftar tetap lengkap. Saat aset dibuka, file asalnya dimuat otomatis.")
             }
             if (remaining.isNotEmpty()) {
-                append("\n⚠ 还有 ${remaining.size} 个文件过大，一次装不下——点击下方按钮自动继续装载。")
+                append("\n⚠ Masih ada ${remaining.size} file besar yang belum dimuat. Tekan tombol di bawah untuk melanjutkan.")
             }
             if (allOverBudget.isNotEmpty()) {
-                append("\n因内存预算跳过 ${allOverBudget.size} 个大文件：")
+                append("\nMelewati ${allOverBudget.size} file karena batas RAM: ")
                 append(allOverBudget.take(3).joinToString("、"))
-                if (allOverBudget.size > 3) append(" 等")
+                if (allOverBudget.size > 3) append(" dan lainnya")
             }
-            if (allTooBig.isNotEmpty()) append("\n超过单文件上限跳过 ${allTooBig.size} 个")
+            if (allTooBig.isNotEmpty()) append("\nMelewati ${allTooBig.size} file karena ukurannya melewati batas")
             if (allFailures.isNotEmpty()) {
-                append("\n解析失败 ${allFailures.size} 个：")
+                append("\nGagal membaca ${allFailures.size} file: ")
                 append(allFailures.take(3).joinToString("；"))
-                if (allFailures.size > 3) append(" 等")
+                if (allFailures.size > 3) append(" dan lainnya")
             }
             if (truncatedCount > 0) {
-                append("\n文件数超过 $MAX_FOLDER_FILES，已截断 $truncatedCount 个")
+                append("\nJumlah file melebihi $MAX_FOLDER_FILES; $truncatedCount file tidak disertakan")
             }
         }
         _pendingRemainingFiles.value = remaining.takeIf { it.isNotEmpty() }
@@ -1088,7 +1088,7 @@ class MainViewModel : ViewModel() {
         manager = sessionManagers.values.lastOrNull() ?: manager
         val totalAssets = _assets.value.size
         // v1.10.0：标题只讲文件与资产数——「批次」概念对用户彻底隐形
-        _loadedFileName.value = "${sessions.sumOf { it.fileCount }} 个文件 · $totalAssets 项"
+        _loadedFileName.value = "${sessions.sumOf { it.fileCount }}  file · $totalAssets aset"
         // v1.10.1（图一修复）：链式加载中每个批次登记都会走这里——若无条件写 Loaded，
         // 下一批的进度更新又写回 Loading，主页就会在「进度卡 ⇄ 查看资产汇总卡」间
         // 时不时闪现。加载进行中保持 Loading，最终 Loaded 由 chainLoadBatches 收尾统一写
@@ -1103,7 +1103,7 @@ class MainViewModel : ViewModel() {
      */
     fun openUnifiedList(onReady: () -> Unit) {
         if (_sessions.value.isEmpty()) {
-            _toast.value = "还没有加载任何文件"
+            _toast.value = "Belum ada file yang dimuat"
             return
         }
         rebuildUnifiedAssets()
@@ -1130,7 +1130,7 @@ class MainViewModel : ViewModel() {
                 val loaded = withContext(Dispatchers.IO) { ensureItemLive(item) }
                 _demandState.value = when {
                     loaded?.obj != null -> DemandState.Ready
-                    else -> DemandState.Failed(item.name, "该文件无法从磁盘装回")
+                    else -> DemandState.Failed(item.name, "File ini tidak dapat dimuat lagi dari penyimpanan.")
                 }
             } finally {
                 demandInFlight.remove(id)
@@ -1253,7 +1253,7 @@ class MainViewModel : ViewModel() {
         originKey: String
     ) {
         if (name == null) {
-            _loadState.value = LoadState.Failed(errors.firstOrNull() ?: "未知错误")
+            _loadState.value = LoadState.Failed(errors.firstOrNull() ?: "Terjadi kesalahan yang belum diketahui")
             return
         }
         val items = collectAssets(m)
@@ -1377,7 +1377,7 @@ class MainViewModel : ViewModel() {
                 val live = if (item.isLazy) ensureItemLive(item) else item
                 val obj = live?.obj
                 if (obj == null) {
-                    failures.add("${item.name}: 从磁盘按需装载失败，已跳过")
+                    failures.add("${item.name}: Gagal memuat dari penyimpanan; aset dilewati")
                     continue
                 }
                 // 文件名：资产名去非法字符；空名回退 pathID
@@ -1506,13 +1506,13 @@ class MainViewModel : ViewModel() {
                 }
             }
             if (result == null) {
-                onDone(false, "替换失败，请重试或使用其他图片")
+                onDone(false, "Gagal mengganti. Coba lagi atau gunakan gambar lain.")
             } else {
                 _pendingSave.value = PendingSave(result.bytes, result.suggestedName)
-                val fmtNote = if (result.keptOriginalFormat) "原格式" else "RGBA32"
+                val fmtNote = if (result.keptOriginalFormat) "format asli" else "RGBA32"
                 onDone(
                     true,
-                    "替换成功（${result.usedFormat} / ${result.mipCount} 级 mip / 格式策略: $fmtNote），请另存文件"
+                    "Berhasil diganti (${result.usedFormat} / ${result.mipCount}  tingkat mip / pilihan format: $fmtNote). Simpan hasilnya sebagai file baru."
                 )
             }
         }
@@ -1532,28 +1532,28 @@ class MainViewModel : ViewModel() {
                 try {
                     AssetReplacer.replaceTexturesBatch(entries) to null
                 } catch (e: OutOfMemoryError) {
-                    null to "内存不足：贴图或原文件过大，建议减少一次替换的数量"
+                    null to "RAM tidak cukup. Kurangi jumlah tekstur yang diganti sekaligus."
                 } catch (e: Exception) {
-                    null to (e.message ?: "批量替换失败")
+                    null to (e.message ?: "Gagal mengganti sekaligus")
                 }
             }
             if (batch == null) {
-                onDone(false, "批量替换失败：$err")
+                onDone(false, "Gagal mengganti sekaligus: $err")
             } else {
                 _pendingSave.value = PendingSave(batch.bytes, batch.suggestedName)
                 val msg = buildString {
-                    append("替换完成：成功 ${batch.succeeded.size} 张")
-                    if (batch.failed.isNotEmpty()) append("，失败 ${batch.failed.size} 张")
-                    append("（原格式 ${batch.keptOriginalCount}，回退 RGBA32 ${batch.fallbackCount}）")
+                    append("Penggantian selesai: ${batch.succeeded.size} tekstur")
+                    if (batch.failed.isNotEmpty()) append(", gagal ${batch.failed.size} tekstur")
+                    append(" (format asli ${batch.keptOriginalCount}, memakai RGBA32 ${batch.fallbackCount})")
                     if (batch.outputs.size == 1) {
-                        append("\n输出 1 个文件，请另存后替换游戏内原文件")
+                        append("\nHasil berupa satu file. Simpan, lalu ganti file asli di dalam game.")
                     } else {
-                        append("\n输出 ${batch.outputs.size} 个文件，已打包为 ZIP，解压后按原文件名逐个替换游戏文件")
+                        append("\nHasil berupa ${batch.outputs.size} file dalam ZIP. Ekstrak lalu ganti file di game sesuai nama aslinya.")
                     }
                     if (batch.failed.isNotEmpty()) {
-                        append("\n失败原因：")
+                        append("\nPenyebab kegagalan: ")
                         append(batch.failed.take(3).joinToString("；") { "${it.textureName}: ${it.reason}" })
-                        if (batch.failed.size > 3) append(" 等 ${batch.failed.size} 项")
+                        if (batch.failed.size > 3) append(" ${batch.failed.size} lainnya")
                     }
                 }
                 onDone(true, msg)
@@ -1569,23 +1569,23 @@ class MainViewModel : ViewModel() {
                     AssetReplacer.replaceMesh(mesh, objText) to null
                 } catch (e: OutOfMemoryError) {
                     // 大模型 + 大 bundle 重打包可能触发，给用户明确提示而非崩溃
-                    null to "内存不足：模型或原文件过大，建议减少顶点数后重试"
+                    null to "RAM tidak cukup. Kurangi jumlah titik model, lalu coba lagi."
                 } catch (e: Exception) {
-                    null to (e.message ?: "替换失败")
+                    null to (e.message ?: "Gagal mengganti")
                 }
             }
             if (repack == null) {
-                onDone(false, "模型替换失败：$err")
+                onDone(false, "Gagal mengganti model: $err")
             } else {
                 _pendingSave.value = PendingSave(repack.bytes, repack.suggestedName)
-                onDone(true, "替换成功，请另存文件")
+                onDone(true, "Penggantian berhasil. Simpan hasilnya.")
             }
         }
     }
 
     fun savePendingResult(context: Context, uri: Uri, onDone: (Boolean, String) -> Unit) {
         val result = _pendingSave.value ?: run {
-            onDone(false, "没有待保存的替换结果")
+            onDone(false, "Belum ada hasil penggantian untuk disimpan.")
             return
         }
         viewModelScope.launch {
@@ -1601,9 +1601,9 @@ class MainViewModel : ViewModel() {
             }
             if (ok) {
                 _pendingSave.value = null
-                onDone(true, "已保存（${formatBytes(result.bytes.size.toLong())}）")
+                onDone(true, "Berhasil disimpan (${formatBytes(result.bytes.size.toLong())})")
             } else {
-                onDone(false, "保存失败，请检查存储权限")
+                onDone(false, "Gagal menyimpan. Periksa izin akses penyimpanan.")
             }
         }
     }
@@ -1638,14 +1638,14 @@ class MainViewModel : ViewModel() {
                 // 获取局域网 IP 也在 IO 线程做
                 val ip = withContext(Dispatchers.IO) { detectLanIp() }
                 _mcpStatus.value = buildString {
-                    append("MCP 服务器运行中（端口 $port）")
-                    if (ip != null) append("\n连接地址：http://$ip:$port")
-                    append("\nAI 客户端需与手机连接同一 Wi-Fi")
+                    append("Server MCP berjalan (port $port)")
+                    if (ip != null) append("\nAlamat koneksi: http://$ip:$port")
+                    append("\nAsisten AI harus terhubung ke Wi-Fi yang sama dengan HP.")
                 }
-                _toast.value = "MCP 服务器已启动（端口 $port）"
+                _toast.value = "Server MCP aktif (port $port)"
             } else {
                 _mcpStatus.value = null
-                _toast.value = "MCP 启动失败：${McpManager.lastStartError ?: "未知原因"}"
+                _toast.value = "Gagal menjalankan MCP: ${McpManager.lastStartError ?: "penyebab tidak diketahui"}"
             }
             _mcpStarting.value = false
         }
@@ -1660,7 +1660,7 @@ class MainViewModel : ViewModel() {
                 }
             }
             _mcpStatus.value = null
-            _toast.value = "MCP 服务器已停止"
+            _toast.value = "Server MCP dihentikan."
         }
     }
 
@@ -1694,14 +1694,14 @@ class MainViewModel : ViewModel() {
             val live = withContext(Dispatchers.IO) { if (item.isLazy) ensureItemLive(item) else item }
             val obj = live?.obj
             if (obj == null) {
-                onDone(false, "该资产无法从磁盘装回（来源文件可能已变化）")
+                onDone(false, "Aset tidak dapat dimuat lagi. File aslinya mungkin sudah berubah.")
                 return@launch
             }
             val result = withContext(Dispatchers.IO) {
                 try {
                     AssetExporter.export(obj, context.contentResolver, uri)
                 } catch (e: Exception) {
-                    AssetExporter.ExportResult(false, e.message ?: "导出失败")
+                    AssetExporter.ExportResult(false, e.message ?: "Gagal mengekspor")
                 }
             }
             onDone(result.success, result.message)
@@ -1715,14 +1715,14 @@ class MainViewModel : ViewModel() {
             val live = withContext(Dispatchers.IO) { if (item.isLazy) ensureItemLive(item) else item }
             val obj = live?.obj
             if (obj == null) {
-                onDone(false, "该资产无法从磁盘装回（来源文件可能已变化）")
+                onDone(false, "Aset tidak dapat dimuat lagi. File aslinya mungkin sudah berubah.")
                 return@launch
             }
             val result = withContext(Dispatchers.IO) {
                 try {
                     AssetExporter.exportToFile(obj, file)
                 } catch (e: Exception) {
-                    AssetExporter.ExportResult(false, e.message ?: "导出失败")
+                    AssetExporter.ExportResult(false, e.message ?: "Gagal mengekspor")
                 }
             }
             onDone(result.success, result.message)
@@ -1732,7 +1732,7 @@ class MainViewModel : ViewModel() {
     /** 将替换重打包结果直写到 File */
     fun savePendingToFile(file: java.io.File, onDone: (Boolean, String) -> Unit) {
         val result = _pendingSave.value ?: run {
-            onDone(false, "没有待保存的替换结果")
+            onDone(false, "Belum ada hasil penggantian untuk disimpan.")
             return
         }
         viewModelScope.launch {
@@ -1750,9 +1750,9 @@ class MainViewModel : ViewModel() {
             }
             if (ok) {
                 _pendingSave.value = null
-                onDone(true, "已保存到 ${file.absolutePath}（${formatBytes(result.bytes.size.toLong())}）")
+                onDone(true, "Berhasil disimpan di ${file.absolutePath} (${formatBytes(result.bytes.size.toLong())})")
             } else {
-                onDone(false, "保存失败，请检查存储权限")
+                onDone(false, "Gagal menyimpan. Periksa izin akses penyimpanan.")
             }
         }
     }

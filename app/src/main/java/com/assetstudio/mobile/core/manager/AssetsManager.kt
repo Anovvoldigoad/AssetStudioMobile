@@ -166,9 +166,9 @@ class AssetsManager {
                 if (unwrapped != null) {
                     val key = EncryptedBundleDecoder.detectXorKey(reader.data)
                     lastUnwrapNote = if (key != null) {
-                        "检测到 XOR 加密（key=0x%02X），已自动解密".format(key)
+                        "Terdeteksi enkripsi XOR (key=0x%02X). File berhasil didekripsi otomatis".format(key)
                     } else {
-                        "检测到非标准文件头，已自动定位 Unity 数据（偏移 ${reader.data.size - unwrapped.data.size} 字节）"
+                        "Header file tidak standar. Data Unity ditemukan otomatis (offset ${reader.data.size - unwrapped.data.size}  byte)"
                     }
                     effective = FileReader(reader.fullPath, unwrapped.data)
                     if (unwrapped.fallbacks.isNotEmpty()) {

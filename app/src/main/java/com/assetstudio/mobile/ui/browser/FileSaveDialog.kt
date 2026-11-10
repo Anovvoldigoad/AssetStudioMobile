@@ -83,7 +83,7 @@ fun FileSaveDialog(
     /** 长按文件夹 → 收藏到快捷访问 */
     fun addToQuickAccess(dir: File) {
         quickAccess = QuickAccessStore.add(context, dir.absolutePath)
-        Toast.makeText(context, "已添加到快捷访问：${dir.name}", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, "Ditambahkan ke akses cepat: ${dir.name}", Toast.LENGTH_SHORT).show()
     }
 
     /** 点击快捷访问条 → 跳转（目录被删则移除该收藏） */
@@ -93,7 +93,7 @@ fun FileSaveDialog(
             currentDir = dir
         } else {
             quickAccess = QuickAccessStore.remove(context, path)
-            Toast.makeText(context, "目录已不存在，已从快捷访问移除", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Folder sudah tidak ada dan dihapus dari akses cepat", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -103,7 +103,7 @@ fun FileSaveDialog(
             ?.filter { it.isDirectory && !it.name.startsWith(".") }
             ?.sortedBy { it.name.lowercase() }
         if (listed == null) {
-            listError = "无法读取该目录（权限不足？）"
+            listError = "Folder tidak bisa dibaca. Periksa izin akses."
             dirs = emptyList()
         } else {
             listError = null
@@ -114,11 +114,11 @@ fun FileSaveDialog(
     fun trySave() {
         val trimmed = name.trim()
         if (trimmed.isEmpty()) {
-            nameError = "文件名不能为空"
+            nameError = "Nama file tidak boleh kosong"
             return
         }
         if (trimmed.contains('/') || trimmed.contains('\\')) {
-            nameError = "文件名不能包含路径分隔符"
+            nameError = "Nama file tidak boleh mengandung pemisah folder"
             return
         }
         nameError = null
@@ -132,7 +132,7 @@ fun FileSaveDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("保存到…") },
+        title = { Text("Simpan di…") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 // ---------- 快捷访问条 ----------
@@ -141,7 +141,7 @@ fun FileSaveDialog(
                     onJump = { jumpTo(it) },
                     onRemove = { path ->
                         quickAccess = QuickAccessStore.remove(context, path)
-                        Toast.makeText(context, "已从快捷访问移除：${File(path).name}", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Dihapus dari akses cepat: ${File(path).name}", Toast.LENGTH_SHORT).show()
                     }
                 )
 
@@ -154,7 +154,7 @@ fun FileSaveDialog(
                         onClick = { currentDir.parentFile?.let { currentDir = it } },
                         enabled = currentDir.parentFile != null
                     ) {
-                        Icon(Icons.Filled.ArrowUpward, contentDescription = "返回上级")
+                        Icon(Icons.Filled.ArrowUpward, contentDescription = "Ke folder atas")
                     }
                     Text(
                         currentDir.absolutePath,
@@ -166,7 +166,7 @@ fun FileSaveDialog(
                             .horizontalScroll(rememberScrollState())
                     )
                     IconButton(onClick = { showMkdir = true }) {
-                        Icon(Icons.Filled.CreateNewFolder, contentDescription = "新建文件夹")
+                        Icon(Icons.Filled.CreateNewFolder, contentDescription = "Folder baru")
                     }
                 }
 
@@ -185,7 +185,7 @@ fun FileSaveDialog(
                 ) {
                     if (dirs.isEmpty() && listError == null) {
                         Text(
-                            "（空目录）",
+                            "(Folder kosong)",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(12.dp)
@@ -229,7 +229,7 @@ fun FileSaveDialog(
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it; nameError = null },
-                    label = { Text("文件名（含后缀）") },
+                    label = { Text("Nama file (termasuk ekstensi)") },
                     isError = nameError != null,
                     supportingText = nameError?.let { { Text(it) } },
                     singleLine = true,
@@ -238,10 +238,10 @@ fun FileSaveDialog(
             }
         },
         confirmButton = {
-            Button(onClick = { trySave() }) { Text("保存") }
+            Button(onClick = { trySave() }) { Text("Simpan") }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("取消") }
+            TextButton(onClick = onDismiss) { Text("Batal") }
         }
     )
 
@@ -249,16 +249,16 @@ fun FileSaveDialog(
     pendingOverwrite?.let { target ->
         AlertDialog(
             onDismissRequest = { pendingOverwrite = null },
-            title = { Text("覆盖文件？") },
-            text = { Text("已存在同名文件：\n${target.name}\n（位于 ${currentDir.absolutePath}）") },
+            title = { Text("Timpa file yang ada?") },
+            text = { Text("Sudah ada file dengan nama yang sama:\n${target.name}\n(di ${currentDir.absolutePath})") },
             confirmButton = {
                 TextButton(onClick = {
                     pendingOverwrite = null
                     onConfirm(target)
-                }) { Text("覆盖") }
+                }) { Text("Timpa") }
             },
             dismissButton = {
-                TextButton(onClick = { pendingOverwrite = null }) { Text("取消") }
+                TextButton(onClick = { pendingOverwrite = null }) { Text("Batal") }
             }
         )
     }
@@ -269,13 +269,13 @@ fun FileSaveDialog(
         var mkdirError by remember { mutableStateOf<String?>(null) }
         AlertDialog(
             onDismissRequest = { showMkdir = false },
-            title = { Text("新建文件夹") },
+            title = { Text("Folder baru") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
                         value = newDirName,
                         onValueChange = { newDirName = it; mkdirError = null },
-                        label = { Text("文件夹名称") },
+                        label = { Text("Nama folder") },
                         isError = mkdirError != null,
                         supportingText = mkdirError?.let { { Text(it) } },
                         singleLine = true
@@ -286,22 +286,22 @@ fun FileSaveDialog(
                 TextButton(onClick = {
                     val trimmed = newDirName.trim()
                     if (trimmed.isEmpty() || trimmed.contains('/')) {
-                        mkdirError = "名称无效"
+                        mkdirError = "Nama tidak valid"
                         return@TextButton
                     }
                     val dir = File(currentDir, trimmed)
                     if (dir.exists()) {
-                        mkdirError = "已存在同名文件夹"
+                        mkdirError = "Folder dengan nama itu sudah ada"
                     } else if (dir.mkdirs()) {
                         showMkdir = false
                         currentDir = dir
                     } else {
-                        mkdirError = "创建失败（权限不足？）"
+                        mkdirError = "Gagal membuat folder. Periksa izin akses."
                     }
-                }) { Text("创建") }
+                }) { Text("Buat") }
             },
             dismissButton = {
-                TextButton(onClick = { showMkdir = false }) { Text("取消") }
+                TextButton(onClick = { showMkdir = false }) { Text("Batal") }
             }
         )
     }

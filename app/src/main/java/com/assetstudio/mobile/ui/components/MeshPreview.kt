@@ -401,8 +401,8 @@ fun MeshPreview(mesh: Mesh) {
                 ) {
                     Text(
                         if (mesh.m_Vertices == null || mesh.m_Indices.isEmpty())
-                            "该网格无顶点/索引数据，无法预览"
-                        else "正在提取网格…",
+                            "Mesh ini tidak memiliki data titik atau indeks untuk ditampilkan."
+                        else "Sedang menyiapkan mesh…",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -441,13 +441,13 @@ fun MeshPreview(mesh: Mesh) {
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        "拖动旋转 · ${g.vertexCount} 顶点 / ${g.triangleCount} 三角形",
+                        "Geser untuk memutar · ${g.vertexCount} titik / ${g.triangleCount} Segitiga",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     if (g.sampleRatio < 1f) {
                         Text(
-                            "已降采样 ${(g.sampleRatio * 100).toInt()}%",
+                            "Detail disederhanakan menjadi ${(g.sampleRatio * 100).toInt()}%",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.tertiary
                         )

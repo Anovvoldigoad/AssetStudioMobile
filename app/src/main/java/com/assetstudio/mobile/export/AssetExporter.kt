@@ -41,7 +41,7 @@ object AssetExporter {
     fun export(obj: UnityObject, resolver: ContentResolver, uri: Uri): ExportResult {
         return export(obj) {
             resolver.openOutputStream(uri, "wt")
-                ?: throw IllegalStateException("无法打开目标文件")
+                ?: throw IllegalStateException("Tidak dapat membuka file tujuan")
         }
     }
 
@@ -63,59 +63,59 @@ object AssetExporter {
                     writeBytes(openOutput, text.toByteArray(Charsets.UTF_8))
                     ExportResult(
                         true,
-                        "已导出 OBJ（${obj.m_VertexCount} 顶点，${obj.m_SubMeshes.size} 子网格，${obj.m_Indices.size / 3} 三角形）"
+                        "OBJ berhasil diekspor (${obj.m_VertexCount}  titik, ${obj.m_SubMeshes.size}  submesh, ${obj.m_Indices.size / 3}  segitiga)"
                     )
                 }
                 is Material -> {
                     writeBytes(openOutput, RenderDumper.dumpMaterial(obj).toByteArray(Charsets.UTF_8))
-                    ExportResult(true, "已导出材质转储")
+                    ExportResult(true, "Data material berhasil diekspor")
                 }
                 is Shader -> {
                     writeBytes(openOutput, RenderDumper.dumpShader(obj).toByteArray(Charsets.UTF_8))
-                    ExportResult(true, "已导出着色器转储")
+                    ExportResult(true, "Data shader berhasil diekspor")
                 }
                 is TextAsset -> {
                     writeBytes(openOutput, obj.m_Script)
-                    ExportResult(true, "已导出文本")
+                    ExportResult(true, "Teks berhasil diekspor")
                 }
                 is AudioClip -> {
                     val wav = obj.toWav()
                     if (wav != null) {
                         writeBytes(openOutput, wav)
-                        ExportResult(true, "已导出 WAV 音频")
+                        ExportResult(true, "Audio WAV berhasil diekspor")
                     } else {
                         val data = obj.getAudioData()
                         writeBytes(openOutput, data)
-                        ExportResult(true, "已导出原始音频数据（${data.size} 字节，未能转 WAV）")
+                        ExportResult(true, "Data audio mentah berhasil diekspor (${data.size}  byte; tidak bisa dikonversi ke WAV)")
                     }
                 }
                 is Font -> {
                     val fontData = obj.m_FontData
                     if (fontData != null && fontData.isNotEmpty()) {
                         writeBytes(openOutput, fontData)
-                        ExportResult(true, "已导出字体")
+                        ExportResult(true, "Font berhasil diekspor")
                     } else {
-                        ExportResult(false, "该字体不含内嵌字体数据")
+                        ExportResult(false, "Font ini tidak memiliki data font yang tersimpan di dalamnya.")
                     }
                 }
                 is MovieTexture -> {
                     writeBytes(openOutput, obj.m_MovieData)
-                    ExportResult(true, "已导出视频数据")
+                    ExportResult(true, "Data video berhasil diekspor")
                 }
                 is VideoClip -> {
                     val data = try { obj.m_VideoData.getData() } catch (e: Exception) { null }
                     if (data != null && data.isNotEmpty()) {
                         writeBytes(openOutput, data)
-                        ExportResult(true, "已导出视频数据")
+                        ExportResult(true, "Data video berhasil diekspor")
                     } else {
-                        ExportResult(false, "视频数据为空")
+                        ExportResult(false, "Data video kosong")
                     }
                 }
                 is MonoBehaviour -> exportMonoBehaviour(obj, openOutput)
                 else -> exportDump(obj, openOutput)
             }
         } catch (e: Exception) {
-            ExportResult(false, "导出失败: ${e.message}")
+            ExportResult(false, "Gagal mengekspor: ${e.message}")
         }
     }
 
@@ -151,13 +151,13 @@ object AssetExporter {
     }
 
     private fun exportBitmap(bitmap: Bitmap?, openOutput: () -> java.io.OutputStream): ExportResult {
-        if (bitmap == null) return ExportResult(false, "贴图解码失败（格式不支持或数据缺失）")
+        if (bitmap == null) return ExportResult(false, "Gagal membuka tekstur (format tidak didukung atau data tidak ada)")
         val out = ByteArrayOutputStream()
         if (!bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)) {
-            return ExportResult(false, "PNG 编码失败")
+            return ExportResult(false, "Gagal membuat PNG")
         }
         writeBytes(openOutput, out.toByteArray())
-        return ExportResult(true, "已导出 PNG（${bitmap.width}x${bitmap.height}）")
+        return ExportResult(true, "PNG berhasil diekspor (${bitmap.width}x${bitmap.height})")
     }
 
     // ============================ 其他类型 ============================
@@ -174,17 +174,17 @@ object AssetExporter {
         } else null
         if (dump != null) {
             writeBytes(openOutput, dump.toByteArray(Charsets.UTF_8))
-            return ExportResult(true, "已导出 TypeTree 转储")
+            return ExportResult(true, "Data TypeTree berhasil diekspor")
         }
         return exportDump(obj, openOutput)
     }
 
     private fun exportDump(obj: UnityObject, openOutput: () -> java.io.OutputStream): ExportResult {
         val info = obj.assetsFile.m_Objects.firstOrNull { it.m_PathID == obj.m_PathID }
-            ?: return ExportResult(false, "对象信息缺失")
+            ?: return ExportResult(false, "Informasi objek tidak tersedia")
         val bytes = obj.assetsFile.getRawObjectBytes(info)
         writeBytes(openOutput, bytes)
-        return ExportResult(true, "已导出原始数据（${bytes.size} 字节）")
+        return ExportResult(true, "Data mentah berhasil diekspor (${bytes.size}  byte)")
     }
 
     // ============================ IO ============================

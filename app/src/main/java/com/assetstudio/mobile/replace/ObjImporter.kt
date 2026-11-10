@@ -75,10 +75,10 @@ object ObjImporter {
 
         fun toIndex(token: String, size: Int): Int {
             val i = token.toIntOrNull()
-                ?: throw ObjException("面索引不是数字: \"$token\"")
+                ?: throw ObjException("Indeks bidang bukan angka: \"$token\"")
             return if (i > 0) i - 1         // 1-based
             else if (i < 0) size + i         // 负数相对末尾
-            else throw ObjException("面索引不能为 0")
+            else throw ObjException("Indeks bidang tidak boleh 0")
         }
 
         for (rawLine in text.lineSequence()) {
@@ -87,23 +87,23 @@ object ObjImporter {
             val parts = line.split(SPLIT_WS)
             when (parts[0]) {
                 "v" -> {
-                    if (parts.size < 4) throw ObjException("v 行坐标不足: \"$line\"")
+                    if (parts.size < 4) throw ObjException("Baris v tidak memiliki cukup koordinat: \"$line\"")
                     if (posList.size >= MAX_ENTRIES) {
-                        throw ObjException("OBJ 顶点数超过上限 $MAX_ENTRIES，文件过大无法在手机上替换")
+                        throw ObjException("Jumlah titik OBJ melebihi $MAX_ENTRIES. File terlalu besar untuk diganti di HP.")
                     }
                     posList.add(floatArrayOf(parts[1].toFloat(), parts[2].toFloat(), parts[3].toFloat()))
                 }
                 "vn" -> {
-                    if (parts.size < 4) throw ObjException("vn 行坐标不足: \"$line\"")
+                    if (parts.size < 4) throw ObjException("Baris vn tidak memiliki cukup koordinat: \"$line\"")
                     if (nrmList.size >= MAX_ENTRIES) {
-                        throw ObjException("OBJ 法线数超过上限 $MAX_ENTRIES，文件过大无法在手机上替换")
+                        throw ObjException("Jumlah normal OBJ melebihi $MAX_ENTRIES. File terlalu besar untuk diganti di HP.")
                     }
                     nrmList.add(floatArrayOf(parts[1].toFloat(), parts[2].toFloat(), parts[3].toFloat()))
                 }
                 "vt" -> {
-                    if (parts.size < 3) throw ObjException("vt 行坐标不足: \"$line\"")
+                    if (parts.size < 3) throw ObjException("Baris vt tidak memiliki cukup koordinat: \"$line\"")
                     if (uvList.size >= MAX_ENTRIES) {
-                        throw ObjException("OBJ UV 数超过上限 $MAX_ENTRIES，文件过大无法在手机上替换")
+                        throw ObjException("Jumlah UV OBJ melebihi $MAX_ENTRIES. File terlalu besar untuk diganti di HP.")
                     }
                     // OBJ 与 Unity 的 UV 原点均为左下，直接采用
                     uvList.add(floatArrayOf(parts[1].toFloat(), parts[2].toFloat()))
@@ -115,7 +115,7 @@ object ObjImporter {
                     if (groupName.isEmpty()) groupName = parts[0]
                 }
                 "f" -> {
-                    if (parts.size < 4) throw ObjException("面至少需要 3 个顶点: \"$line\"")
+                    if (parts.size < 4) throw ObjException("Setiap bidang harus memiliki minimal tiga titik: \"$line\"")
                     if (!uvDecided) {
                         hasUv = parts[1].contains('/') &&
                             parts[1].split("/").getOrNull(1)?.isNotEmpty() == true
@@ -138,13 +138,13 @@ object ObjImporter {
                         } else {
                             val newIndex = outPos.size / 3
                             if (newIndex >= MAX_OUT_VERTICES) {
-                                throw ObjException("合并后顶点数超过上限 $MAX_OUT_VERTICES，文件过大无法在手机上替换")
+                                throw ObjException("Jumlah titik hasil gabungan melebihi $MAX_OUT_VERTICES. File terlalu besar untuk diproses di HP.")
                             }
-                            if (vi >= posList.size) throw ObjException("顶点索引越界: ${seg[0]}")
+                            if (vi >= posList.size) throw ObjException("Indeks titik di luar batas: ${seg[0]}")
                             val p = posList[vi]
                             outPos.add(p[0]); outPos.add(p[1]); outPos.add(p[2])
                             if (ni >= 0) {
-                                if (ni >= nrmList.size) throw ObjException("法线索引越界: ${seg[2]}")
+                                if (ni >= nrmList.size) throw ObjException("Indeks normal di luar batas: ${seg[2]}")
                                 val n = nrmList[ni]
                                 outNrm.add(n[0]); outNrm.add(n[1]); outNrm.add(n[2])
                             } else {
@@ -154,7 +154,7 @@ object ObjImporter {
                                 if (ti < 0) {
                                     outUv.add(0f); outUv.add(0f)
                                 } else {
-                                    if (ti >= uvList.size) throw ObjException("UV 索引越界: ${seg[1]}")
+                                    if (ti >= uvList.size) throw ObjException("Indeks UV di luar batas: ${seg[1]}")
                                     val t = uvList[ti]
                                     outUv.add(t[0]); outUv.add(t[1])
                                 }
@@ -175,8 +175,8 @@ object ObjImporter {
         }
         closeGroup(outIdx.size)
 
-        if (outIdx.isEmpty()) throw ObjException("OBJ 中没有可用的面数据")
-        if (outPos.isEmpty()) throw ObjException("OBJ 中没有顶点数据")
+        if (outIdx.isEmpty()) throw ObjException("Tidak ada data bidang yang valid dalam OBJ.")
+        if (outPos.isEmpty()) throw ObjException("Tidak ada data titik dalam OBJ.")
 
         val positions = outPos.toFloatArray()
         var normals = outNrm.toFloatArray()

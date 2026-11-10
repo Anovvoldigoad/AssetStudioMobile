@@ -60,12 +60,12 @@ object McpManager {
             // 不能 import android.*（本文件保持纯 Kotlin 以便 JVM 测试），
             // 用类名识别主线程网络拦截
             lastStartError = when {
-                e is java.net.BindException -> "端口 $port 已被占用"
+                e is java.net.BindException -> "Port $port sudah digunakan."
                 e.javaClass.simpleName == "NetworkOnMainThreadException" ->
-                    "主线程网络操作被系统拦截（应后台线程启动）"
+                    "Android memblokir akses jaringan dari proses utama. Jalankan di latar belakang."
                 // EPERM：应用未声明 INTERNET 权限时创建套接字被内核拒绝
                 e.message?.contains("EPERM") == true ->
-                    "系统拒绝创建网络套接字（EPERM）：应用缺少 INTERNET 权限"
+                    "Android menolak koneksi jaringan (EPERM). Aplikasi belum mendapat izin INTERNET."
                 else -> e.message ?: e.javaClass.simpleName
             }
             try {
@@ -87,9 +87,9 @@ object McpManager {
     fun status(): String {
         val current = server
         return if (current != null && current.isRunning()) {
-            "MCP 服务器运行中（端口 ${current.port()}）"
+            "Server MCP berjalan di port ${current.port()}"
         } else {
-            "MCP 服务器未运行"
+            "Server MCP belum berjalan."
         }
     }
 }
