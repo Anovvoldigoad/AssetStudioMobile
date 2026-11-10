@@ -113,7 +113,7 @@ fun HomeScreen(
 
     LaunchedEffect(loadState) {
         val msg = when (val s = loadState) {
-            is LoadState.Failed -> "加载失败：${s.message}"
+            is LoadState.Failed -> "Gagal memuat: ${s.message}"
             else -> null
         }
         if (msg != null) snackbar.showSnackbar(msg)
@@ -125,14 +125,14 @@ fun HomeScreen(
                 title = { Text("AssetStudio") },
                 actions = {
                     IconButton(onClick = { menuOpen = true }) {
-                        Icon(Icons.Filled.MoreVert, contentDescription = "菜单")
+                        Icon(Icons.Filled.MoreVert, contentDescription = "Menu")
                     }
                     DropdownMenu(
                         expanded = menuOpen,
                         onDismissRequest = { menuOpen = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text("设置") },
+                            text = { Text("Pengaturan") },
                             leadingIcon = { Icon(Icons.Filled.Settings, contentDescription = null) },
                             onClick = {
                                 menuOpen = false
@@ -140,7 +140,7 @@ fun HomeScreen(
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("关于") },
+                            text = { Text("Tentang") },
                             leadingIcon = { Icon(Icons.Filled.Info, contentDescription = null) },
                             onClick = {
                                 menuOpen = false
@@ -176,13 +176,13 @@ fun HomeScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
-                        "打开 Unity 资源文件",
+                        "Buka file aset Unity",
                         style = MaterialTheme.typography.titleLarge,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                     Text(
-                        "支持 AssetBundle（.bundle/.unity3d）、序列化文件（.assets）、\n" +
-                            "以及 gzip/brotli/zip 容器。可多选：.assets 与对应 .resS 一起选择。",
+                        "Mendukung AssetBundle (.bundle/.unity3d), file .assets,\n" +
+                            "serta arsip gzip, brotli, dan zip. Pilih file .assets beserta .resS jika ada.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
                     )
@@ -200,7 +200,7 @@ fun HomeScreen(
                         ) {
                             Icon(Icons.Filled.FolderOpen, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.size(8.dp))
-                            Text("选择文件")
+                            Text("Pilih file")
                         }
                         OutlinedButton(
                             onClick = {
@@ -215,7 +215,7 @@ fun HomeScreen(
                         ) {
                             Icon(Icons.Filled.Folder, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.size(8.dp))
-                            Text("加载文件夹")
+                            Text("Muat folder")
                         }
                     }
                 }
@@ -225,8 +225,8 @@ fun HomeScreen(
             OutlinedTextField(
                 value = versionInput,
                 onValueChange = { versionInput = it },
-                label = { Text("Unity 版本（可选，如 2019.4.1f1）") },
-                placeholder = { Text("版本号被剥离的文件需要填写") },
+                label = { Text("Versi Unity (opsional, misalnya 2019.4.1f1)") },
+                placeholder = { Text("Isi jika informasi versi Unity tidak ada di file") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
@@ -260,7 +260,7 @@ fun HomeScreen(
                             // 批量加载允许中途取消（保留已加载部分）
                             if (s.cancellable) {
                                 TextButton(onClick = { viewModel.requestCancelLoad() }) {
-                                    Text("取消（保留已加载部分）")
+                                    Text("Batalkan (aset yang sudah dimuat tetap ada)")
                                 }
                             }
                         }
@@ -311,13 +311,13 @@ fun HomeScreen(
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 Text(
-                                    "还有 ${pr.files.size} 个文件未装完",
+                                    "Masih ada ${pr.files.size} file yang belum dimuat",
                                     style = MaterialTheme.typography.titleSmall,
                                     color = MaterialTheme.colorScheme.onTertiaryContainer
                                 )
                                 Text(
-                                    "这些文件较大，手机内存一次装不下（防闪退保护自动暂停）。" +
-                                        "已列出的 ${assets.size} 个资产不受影响；点击下方按钮自动继续装载剩余文件，无需反复操作。",
+                                    "File terlalu besar untuk dimuat sekaligus. Proses dijeda agar aplikasi tidak berhenti mendadak." +
+                                        "${assets.size} aset yang sudah ditampilkan tetap aman. Tekan tombol di bawah untuk melanjutkan file yang tersisa secara otomatis.",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onTertiaryContainer
                                 )
@@ -328,7 +328,7 @@ fun HomeScreen(
                                 ) {
                                     Icon(Icons.Filled.FolderOpen, contentDescription = null, modifier = Modifier.size(18.dp))
                                     Spacer(Modifier.size(8.dp))
-                                    Text("自动装完剩余 ${pr.files.size} 个文件")
+                                    Text("Lanjutkan ${pr.files.size} file tersisa")
                                 }
                             }
                         }
@@ -341,7 +341,7 @@ fun HomeScreen(
                             )
                         ) {
                             Text(
-                                "已自动解密：$decryptNote",
+                                "Berhasil didekripsi otomatis: $decryptNote",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onTertiaryContainer,
                                 modifier = Modifier.padding(12.dp)
@@ -358,7 +358,7 @@ fun HomeScreen(
                     ) {
                         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(
-                                "加载失败",
+                                "Gagal memuat",
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.onErrorContainer
                             )
@@ -369,12 +369,12 @@ fun HomeScreen(
                                 fontFamily = FontFamily.Monospace
                             )
                             Text(
-                                "若文件为已知密钥加密的 bundle，可尝试手动解密。",
+                                "Jika bundle memakai kunci enkripsi yang diketahui, coba dekripsi manual.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f)
                             )
                             OutlinedButton(onClick = { showDecryptDialog = true }) {
-                                Text("尝试手动解密")
+                                Text("Coba dekripsi manual")
                             }
                         }
                     }
@@ -471,12 +471,12 @@ fun HomeScreen(
             if (showPermDialog) {
                 AlertDialog(
                     onDismissRequest = { showPermDialog = false },
-                    title = { Text("需要存储权限") },
+                    title = { Text("Perlu izin akses penyimpanan") },
                     text = {
                         Text(
-                            "浏览与读取手机存储中的文件需要「所有文件访问」权限。\n\n" +
-                                "点击「去授权」跳转系统设置页，找到本应用并开启" +
-                                "\"允许管理所有文件\"后返回即可。",
+                            "Untuk membuka file di penyimpanan HP, aplikasi memerlukan izin akses semua file.\n\n" +
+                                "Tekan 'Buka pengaturan', temukan aplikasi ini, lalu aktifkan izin " +
+                                "\"Izinkan mengelola semua file\". Setelah itu, kembali ke aplikasi.",
                             style = MaterialTheme.typography.bodySmall
                         )
                     },
@@ -484,10 +484,10 @@ fun HomeScreen(
                         TextButton(onClick = {
                             showPermDialog = false
                             requestStorage()
-                        }) { Text("去授权") }
+                        }) { Text("Buka pengaturan") }
                     },
                     dismissButton = {
-                        TextButton(onClick = { showPermDialog = false }) { Text("取消") }
+                        TextButton(onClick = { showPermDialog = false }) { Text("Batal") }
                     }
                 )
             }
@@ -511,12 +511,12 @@ fun HomeScreen(
             // ---------- 功能说明 ----------
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("主要功能", style = MaterialTheme.typography.titleMedium)
-                    FeatureRow(Icons.Filled.Inventory2, "资产浏览", "解析 bundle 内全部资产，按类型筛选、搜索；长按分类标签可置顶排序")
-                    FeatureRow(Icons.Filled.Image, "贴图预览", "DXT/BC/ETC/ASTC/PVRTC 等格式硬解预览")
-                    FeatureRow(Icons.Filled.SwapHoriz, "贴图 / 模型替换", "PNG 替换贴图、OBJ 替换模型，重打包保存")
-                    FeatureRow(Icons.Filled.ViewInAr, "渲染信息", "材质 / 着色器结构化文本查看")
-                    FeatureRow(Icons.Filled.Rule, "资产导出", "PNG / OBJ / WAV / 文本 / TypeTree 转储")
+                    Text("Fitur utama", style = MaterialTheme.typography.titleMedium)
+                    FeatureRow(Icons.Filled.Inventory2, "Jelajahi aset", "Lihat seluruh aset dalam bundle, cari dan saring berdasarkan jenis. Tahan kategori untuk mengubah urutan.")
+                    FeatureRow(Icons.Filled.Image, "Pratinjau tekstur", "Pratinjau tekstur DXT, BC, ETC, ASTC, PVRTC, dan format lainnya")
+                    FeatureRow(Icons.Filled.SwapHoriz, "Ganti tekstur / model", "Ganti tekstur memakai PNG atau model memakai OBJ, lalu kemas ulang file")
+                    FeatureRow(Icons.Filled.ViewInAr, "Info rendering", "Lihat informasi material dan shader dalam bentuk teks")
+                    FeatureRow(Icons.Filled.Rule, "Ekspor aset", "Ekspor PNG, OBJ, WAV, teks, atau data TypeTree")
                 }
             }
 
@@ -547,37 +547,37 @@ private fun LoadedSummaryCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    fileName.ifEmpty { "已加载" },
+                    fileName.ifEmpty { "Sudah dimuat" },
                     style = MaterialTheme.typography.titleMedium,
                     maxLines = 1,
                     modifier = Modifier.weight(1f)
                 )
                 TextButton(onClick = onClearAll) {
-                    Text("清空")
+                    Text("Kosongkan")
                 }
             }
             if (lazyCount > 0) {
                 Text(
-                    "其中 $lazyCount 项暂存磁盘（内存一次装不下全部）：列表、搜索、导出均不受影响，" +
-                        "点开某项时自动从磁盘载入（约 1 秒）。",
+                    "Sebanyak $lazyCount aset disimpan sementara di penyimpanan karena RAM terbatas. Daftar, pencarian, dan ekspor tetap bisa digunakan. " +
+                        "Saat dibuka, aset akan dimuat otomatis dari penyimpanan.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary
                 )
             }
-            InfoRow("序列化文件", "$fileCount 个")
-            InfoRow("资产总数", "${assets.size} 个")
+            InfoRow("File .assets", "$fileCount file")
+            InfoRow("Total aset", "${assets.size} aset")
             val textures = assets.count { it.type.value == 28 }
             val sprites = assets.count { it.type.value == 213 || it.type.value == 68 }
             val audios = assets.count { it.type.value == 83 }
             val texts = assets.count { it.type.value == 49 }
-            InfoRow("贴图 / 精灵", "$textures / $sprites")
-            InfoRow("音频 / 文本", "$audios / $texts")
+            InfoRow("Tekstur / sprite", "$textures / $sprites")
+            InfoRow("Audio / teks", "$audios / $texts")
             if (errors.isNotEmpty()) {
-                InfoRow("解析警告", "${errors.size} 条（部分对象可能不可用）")
+                InfoRow("Peringatan saat membaca data", "${errors.size} peringatan (sebagian aset mungkin tidak bisa dibuka)")
             }
             // 唯一入口：全部资产的统一列表
             Button(onClick = onOpenList, modifier = Modifier.fillMaxWidth()) {
-                Text("查看资产（${assets.size} 项）")
+                Text("Lihat ${assets.size} aset")
             }
         }
     }
@@ -628,20 +628,20 @@ private fun SettingsDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("设置") },
+        title = { Text("Pengaturan") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("AI 助手接入（MCP）", style = MaterialTheme.typography.titleSmall)
+                Text("Hubungkan asisten AI (MCP)", style = MaterialTheme.typography.titleSmall)
                 if (mcpStatus == null) {
                     Text(
-                        "启动内置 MCP 服务器后，AI 助手可通过局域网查询 / 导出" +
-                            "当前已加载的资产（需与手机连接同一 Wi-Fi）。",
+                        "Setelah server MCP diaktifkan, asisten AI bisa mencari dan mengekspor " +
+                            "aset yang sudah dimuat melalui jaringan lokal. Gunakan Wi-Fi yang sama dengan HP.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     if (mcpStarting) {
                         Text(
-                            "正在启动…",
+                            "Sedang memulai…",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -661,13 +661,13 @@ private fun SettingsDialog(
                 TextButton(
                     onClick = onStartMcp,
                     enabled = !mcpStarting
-                ) { Text(if (mcpStarting) "启动中…" else "启动服务器") }
+                ) { Text(if (mcpStarting) "Memulai…" else "Jalankan server") }
             } else {
-                TextButton(onClick = onStopMcp) { Text("停止服务器") }
+                TextButton(onClick = onStopMcp) { Text("Hentikan server") }
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("关闭") }
+            TextButton(onClick = onDismiss) { Text("Tutup") }
         }
     )
 }
@@ -679,32 +679,32 @@ private fun SettingsDialog(
 private fun AboutDialog(onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("关于 AssetStudio") },
+        title = { Text("Tentang AssetStudio") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("版本 v1.10.2", style = MaterialTheme.typography.titleSmall)
+                Text("Versi 1.10.2", style = MaterialTheme.typography.titleSmall)
                 Text(
-                    "Android 端 Unity 资产查看 / 导出 / 替换工具，支持 AssetBundle、" +
-                        "序列化文件与 gzip/brotli/zip 容器，常见加密 bundle 自动探测解密。",
+                    "Aplikasi Android untuk melihat, mengekspor, dan mengganti aset Unity. Mendukung AssetBundle, " +
+                        "file .assets, serta arsip gzip, brotli, dan zip. Sejumlah bundle terenkripsi dapat dikenali dan didekripsi otomatis.",
                     style = MaterialTheme.typography.bodySmall
                 )
                 Text(
-                    "功能：整文件夹无感加载（内存装不下自动转磁盘暂存、点开秒载），" +
-                        "贴图 / 精灵 / 网格预览，PNG / OBJ / WAV / 文本导出，" +
-                        "PNG 替换贴图、OBJ 替换模型并重打包，材质与着色器结构化查看，" +
-                        "内置 MCP 服务器供 AI 助手远程查询导出。",
+                    "Fitur: memuat satu folder (aset disimpan sementara jika RAM tidak cukup), " +
+                        "pratinjau tekstur, sprite, dan mesh, ekspor PNG, OBJ, WAV, dan teks, " +
+                        "ganti tekstur PNG dan model OBJ lalu kemas ulang, lihat informasi material dan shader, " +
+                        "serta server MCP untuk akses asisten AI di jaringan lokal.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    "作者：醉莫",
+                    "Pengembang: Zuimo",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("确定") }
+            TextButton(onClick = onDismiss) { Text("Oke") }
         }
     )
 }
@@ -728,7 +728,7 @@ private fun FolderLoadConfirmDialog(
     val memCap = com.assetstudio.mobile.MainViewModel.folderMemCapBytes()
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("加载整个文件夹") },
+        title = { Text("Muat seluruh isi folder") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
@@ -746,43 +746,43 @@ private fun FolderLoadConfirmDialog(
                 }
                 if (scan.files.isEmpty()) {
                     Text(
-                        "未找到可加载的资源文件（bundle / unity3d / assets / zip / resS …）。\n" +
-                            "可尝试开启「包含子文件夹」。",
+                        "Tidak ditemukan file aset yang didukung (bundle, unity3d, assets, zip, resS, dll.).\n" +
+                            "Coba aktifkan 'Sertakan subfolder'.",
                         style = MaterialTheme.typography.bodySmall
                     )
                 } else {
-                    InfoRow("待加载文件", "${scan.files.size} 个")
-                    InfoRow("总大小", MainViewModel.formatBytes(scan.totalBytes))
+                    InfoRow("File yang akan dimuat", "${scan.files.size} file")
+                    InfoRow("Ukuran total", MainViewModel.formatBytes(scan.totalBytes))
                     if (scan.files.size < scan.scannedCount) {
-                        InfoRow("目录内文件总数", "${scan.scannedCount} 个（已自动过滤非资源文件）")
+                        InfoRow("Jumlah file dalam folder", "${scan.scannedCount} file (file non-aset sudah disaring)")
                     }
-                    InfoRow("内存预算", MainViewModel.formatBytes(memCap) + "（超出部分自动跳过大文件）")
+                    InfoRow("Batas penggunaan RAM", MainViewModel.formatBytes(memCap) + " (file besar yang melebihi batas akan dilewati)")
                     if (scan.skippedTooBig.isNotEmpty()) {
                         Text(
-                            "以下 ${scan.skippedTooBig.size} 个文件超过单文件上限（768MB）将被跳过：\n" +
+                            "${scan.skippedTooBig.size} file berikut melebihi batas 768 MB per file dan akan dilewati:\n" +
                                 scan.skippedTooBig.take(3).joinToString("、") +
-                                if (scan.skippedTooBig.size > 3) " 等" else "",
+                                if (scan.skippedTooBig.size > 3) " dan lainnya" else "",
                             color = MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
                     if (scan.truncatedCount > 0) {
                         Text(
-                            "文件数超过 ${MainViewModel.MAX_FOLDER_FILES}，将只加载较小的 ${scan.files.size} 个。",
+                            "Jumlah file melebihi batas ${MainViewModel.MAX_FOLDER_FILES}. Hanya ${scan.files.size} file yang lebih kecil akan dimuat.",
                             color = MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.bodySmall
                         )
                     } else if (scan.overBudgetHint(memCap)) {
                         Text(
-                            "总大小超过内存预算：加载会自动在预算内进行，超出的大文件将被跳过。\n" +
-                                "如需全部加载，请分批选择子文件夹。",
+                            "Ukuran total melebihi batas RAM. File besar yang tidak muat akan dilewati.\n" +
+                                "Jika ingin memuat semuanya, pilih subfolder secara bertahap.",
                             color = MaterialTheme.colorScheme.tertiary,
                             style = MaterialTheme.typography.bodySmall
                         )
                     } else {
                         // 没有截断、没有超限：明确告知全部加载
                         Text(
-                            "${scan.files.size} 个文件全部在内存预算内，将全部加载。",
+                            "Semua ${scan.files.size} file muat dalam batas RAM dan akan dimuat.",
                             color = MaterialTheme.colorScheme.primary,
                             style = MaterialTheme.typography.bodyMedium
                         )
@@ -792,10 +792,10 @@ private fun FolderLoadConfirmDialog(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Switch(checked = recursive, onCheckedChange = onRecursiveChange)
-                        Text("包含子文件夹", style = MaterialTheme.typography.bodyMedium)
+                        Text("Sertakan subfolder", style = MaterialTheme.typography.bodyMedium)
                     }
                     Text(
-                        "加载过程逐个进行、可随时取消；单个文件损坏或过大只跳过该文件，不影响其余。",
+                        "File dimuat satu per satu dan bisa dibatalkan kapan saja. File rusak atau terlalu besar akan dilewati tanpa mengganggu file lain.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -806,10 +806,10 @@ private fun FolderLoadConfirmDialog(
             TextButton(
                 onClick = onConfirm,
                 enabled = scan.files.isNotEmpty()
-            ) { Text("开始加载") }
+            ) { Text("Mulai memuat") }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("取消") }
+            TextButton(onClick = onDismiss) { Text("Batal") }
         }
     )
 }
@@ -833,12 +833,12 @@ private fun ManualDecryptDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("手动解密加载") },
+        title = { Text("Dekripsi dan muat secara manual") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
-                    "自动探测无法识别该文件时，若你知道游戏使用的加密密钥，" +
-                        "可在此解密后重新加载。密钥用十六进制表示（如 0d0a1b2c 或多字节循环密钥）。",
+                    "Jika file tidak dikenali secara otomatis tetapi kamu mengetahui kunci enkripsinya, " +
+                        "kamu bisa mendekripsi lalu memuat ulang. Masukkan kunci dalam heksadesimal (misalnya 0d0a1b2c).",
                     style = MaterialTheme.typography.bodySmall
                 )
                 OutlinedTextField(
@@ -847,8 +847,8 @@ private fun ManualDecryptDialog(
                         keyInput = it
                         keyError = null
                     },
-                    label = { Text("密钥（hex）") },
-                    placeholder = { Text("例：1a2b3c4d 或 1a") },
+                    label = { Text("Kunci (hex)") },
+                    placeholder = { Text("Contoh: 1a2b3c4d atau 1a") },
                     isError = keyError != null,
                     supportingText = keyError?.let { { Text(it) } },
                     modifier = Modifier.fillMaxWidth(),
@@ -869,13 +869,13 @@ private fun ManualDecryptDialog(
                 OutlinedTextField(
                     value = prefixInput,
                     onValueChange = { prefixInput = it.filter { c -> c.isDigit() } },
-                    label = { Text("前缀偏移（跳过头部字节数）") },
+                    label = { Text("Offset awal (jumlah byte yang dilewati)") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
                 Text(
-                    "提示：AES 密钥须为 16/24/32 字节（hex 长度 32/48/64）；" +
-                        "CBC 模式 IV 默认取密文前 16 字节。",
+                    "Catatan: panjang kunci AES harus 16, 24, atau 32 byte (32, 48, atau 64 digit hex). " +
+                        "IV untuk mode CBC diambil dari 16 byte pertama data terenkripsi.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -890,12 +890,12 @@ private fun ManualDecryptDialog(
                     val prefix = prefixInput.toIntOrNull() ?: 0
                     onConfirm(hex, EncryptedBundleDecoder.DecryptMode.entries[modeIndex], prefix)
                 } catch (e: Exception) {
-                    keyError = "密钥格式错误：${e.message}"
+                    keyError = "Format kunci tidak valid: ${e.message}"
                 }
-            }) { Text("解密并加载") }
+            }) { Text("Dekripsi lalu muat") }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("取消") }
+            TextButton(onClick = onDismiss) { Text("Batal") }
         }
     )
 }

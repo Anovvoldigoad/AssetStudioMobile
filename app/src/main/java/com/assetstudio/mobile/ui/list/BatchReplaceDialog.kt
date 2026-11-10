@@ -99,7 +99,7 @@ fun BatchReplaceDialog(
             }
         }
         if (result == null) {
-            scanError = "无法读取文件夹：${folder.absolutePath}"
+            scanError = "Folder tidak bisa dibaca: ${folder.absolutePath}"
             pairs = emptyList()
         } else {
             pairs = result.first
@@ -111,11 +111,11 @@ fun BatchReplaceDialog(
     val currentPairs = pairs
     AlertDialog(
         onDismissRequest = { if (!running) onDismiss() },
-        title = { Text("批量替换贴图") },
+        title = { Text("Ganti banyak tekstur") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
-                    "文件夹：${folder.name}\n已选贴图 ${textureItems.size} 张",
+                    "Folder: ${folder.name}\n${textureItems.size} tekstur dipilih",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -127,18 +127,18 @@ fun BatchReplaceDialog(
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         CircularProgressIndicator(modifier = Modifier.padding(2.dp))
-                        Text("正在扫描并匹配…")
+                        Text("Sedang mencari gambar yang cocok…")
                     }
                     currentPairs.isEmpty() -> Text(
-                        "没有匹配到任何贴图。\n\n请确认图片文件名与贴图名一致\n（大小写/空格/下划线差异可以自动处理）。",
+                        "Tidak ada gambar yang cocok.\n\nPastikan nama gambar sesuai dengan nama tekstur. Perbedaan huruf besar, spasi, dan garis bawah diabaikan.",
                         color = MaterialTheme.colorScheme.error
                     )
                     else -> {
                         // ---------- 匹配结果 ----------
                         Text(
-                            "匹配 ${currentPairs.size} 张" +
-                                (if (unmatchedTextures.isNotEmpty()) "，未匹配 ${unmatchedTextures.size} 张" else "") +
-                                (if (unmatchedFiles.isNotEmpty()) "，多余图片 ${unmatchedFiles.size} 个" else ""),
+                            "${currentPairs.size} gambar cocok" +
+                                (if (unmatchedTextures.isNotEmpty()) ", ${unmatchedTextures.size} tekstur belum cocok" else "") +
+                                (if (unmatchedFiles.isNotEmpty()) ", ${unmatchedFiles.size} gambar tidak digunakan" else ""),
                             style = MaterialTheme.typography.labelLarge
                         )
                         Surface(
@@ -164,7 +164,7 @@ fun BatchReplaceDialog(
                                         )
                                         Column(Modifier.padding(vertical = 4.dp)) {
                                             Text(
-                                                row.item.name.ifEmpty { "(未命名)" },
+                                                row.item.name.ifEmpty { "(Tanpa nama)" },
                                                 style = MaterialTheme.typography.bodyMedium,
                                                 maxLines = 1,
                                                 overflow = TextOverflow.Ellipsis
@@ -185,9 +185,9 @@ fun BatchReplaceDialog(
 
                         if (unmatchedTextures.isNotEmpty()) {
                             Text(
-                                "未匹配贴图（保持原样）：\n" +
+                                "Tekstur yang tidak cocok (tidak diubah):\n" +
                                     unmatchedTextures.take(5).joinToString("、") +
-                                    if (unmatchedTextures.size > 5) " 等 ${unmatchedTextures.size} 张" else "",
+                                    if (unmatchedTextures.size > 5) " ${unmatchedTextures.size} lainnya" else "",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -196,13 +196,13 @@ fun BatchReplaceDialog(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Checkbox(checked = keepFormat, onCheckedChange = { keepFormat = it })
                             Text(
-                                "尽量保持原格式（ASTC/DXT 已支持，其余回退 RGBA32）",
+                                "Pertahankan format asli jika memungkinkan (ASTC/DXT didukung, lainnya memakai RGBA32)",
                                 style = MaterialTheme.typography.bodySmall
                             )
                         }
 
                         Text(
-                            "替换后：同一文件只重打包一次；多个文件自动打包为 ZIP。",
+                            "Setelah diganti, setiap file dikemas ulang sekali. Jika ada beberapa file, hasilnya digabung menjadi ZIP.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -215,7 +215,7 @@ fun BatchReplaceDialog(
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         CircularProgressIndicator(modifier = Modifier.padding(2.dp))
-                        Text("正在替换并重打包…（大文件可能需要几十秒）")
+                        Text("Sedang mengganti dan mengemas ulang… File besar mungkin butuh waktu lebih lama.")
                     }
                 }
             }
@@ -236,13 +236,13 @@ fun BatchReplaceDialog(
                         }
                     }
                 ) {
-                    Text("开始替换 (${currentPairs.count { it.checked }})")
+                    Text("Mulai mengganti (${currentPairs.count { it.checked }})")
                 }
             }
         },
         dismissButton = {
             if (!running) {
-                TextButton(onClick = onDismiss) { Text("取消") }
+                TextButton(onClick = onDismiss) { Text("Batal") }
             }
         }
     )

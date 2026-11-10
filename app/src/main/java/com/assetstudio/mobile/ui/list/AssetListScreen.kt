@@ -123,7 +123,7 @@ fun AssetListScreen(
         scope.launch { chipScroll.animateScrollTo(0) }
         Toast.makeText(
             context,
-            "「${prettyTypeName(typeName)}」已移到最前（顺序已保存）",
+            "Kategori ${prettyTypeName(typeName)} dipindah ke urutan pertama (tersimpan)",
             Toast.LENGTH_SHORT
         ).show()
     }
@@ -152,9 +152,9 @@ fun AssetListScreen(
                 TopAppBar(
                     title = {
                         Column {
-                            Text("已选 ${selectedIds.size} 项", style = MaterialTheme.typography.titleLarge)
+                            Text("${selectedIds.size} aset dipilih", style = MaterialTheme.typography.titleLarge)
                             Text(
-                                "其中贴图 ${selectedTextures.size} 张（批量替换仅处理贴图）",
+                                "Termasuk ${selectedTextures.size} tekstur (hanya tekstur yang bisa diganti sekaligus)",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -162,7 +162,7 @@ fun AssetListScreen(
                     },
                     navigationIcon = {
                         IconButton(onClick = { exitSelection() }) {
-                            Icon(Icons.Filled.Close, contentDescription = "退出多选")
+                            Icon(Icons.Filled.Close, contentDescription = "Keluar dari pilih banyak")
                         }
                     },
                     actions = {
@@ -170,23 +170,23 @@ fun AssetListScreen(
                             onClick = {
                                 selectedIds = filtered.map { it.id }.toSet()
                             }
-                        ) { Text("全选") }
+                        ) { Text("Pilih semua") }
                         TextButton(
                             onClick = { showFolderPicker = true },
                             enabled = selectedTextures.isNotEmpty()
-                        ) { Text("批量替换") }
+                        ) { Text("Ganti sekaligus") }
                         TextButton(
                             onClick = { showExportDirPicker = true },
                             enabled = selectedIds.isNotEmpty() &&
                                 exportState !is MainViewModel.ExportState.Exporting
-                        ) { Text("批量导出") }
+                        ) { Text("Ekspor sekaligus") }
                     }
                 )
             } else {
                 TopAppBar(
                     title = {
                         Column {
-                            Text("资产列表", style = MaterialTheme.typography.titleLarge)
+                            Text("Daftar aset", style = MaterialTheme.typography.titleLarge)
                             Text(
                                 "${filtered.size} / ${assets.size}",
                                 style = MaterialTheme.typography.labelSmall,
@@ -196,7 +196,7 @@ fun AssetListScreen(
                     },
                     navigationIcon = {
                         IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali")
                         }
                     }
                 )
@@ -215,7 +215,7 @@ fun AssetListScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp),
-                placeholder = { Text("搜索名称或 PathID…") },
+                placeholder = { Text("Cari nama atau PathID…") },
                 leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
                 singleLine = true
             )
@@ -230,7 +230,7 @@ fun AssetListScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 TypeChip(
-                    text = "全部 (${assets.size})",
+                    text = "Semua (${assets.size})",
                     selected = selectedType == null,
                     onClick = { selectedType = null }
                 )
@@ -248,7 +248,7 @@ fun AssetListScreen(
 
             if (selectionMode) {
                 Text(
-                    "勾选资产后点右上角「批量导出」；贴图可「批量替换」",
+                    "Pilih aset lalu tekan 'Ekspor sekaligus' di kanan atas. Tekstur juga bisa 'Ganti sekaligus'.",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 16.dp)
@@ -257,7 +257,7 @@ fun AssetListScreen(
             }
 
             if (filtered.isEmpty()) {
-                EmptyPlaceholder("没有匹配的资产", "尝试调整搜索词或类型筛选")
+                EmptyPlaceholder("Tidak ada aset yang cocok", "Coba ubah kata pencarian atau jenis aset")
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
@@ -326,16 +326,16 @@ fun AssetListScreen(
         is MainViewModel.ExportState.Exporting -> {
             AlertDialog(
                 onDismissRequest = { },
-                title = { Text("正在批量导出") },
+                title = { Text("Sedang mengekspor aset…") },
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text("第 ${es.current} / ${es.total} 个：${es.name.ifBlank { "…" }}")
+                        Text("Aset ${es.current} dari ${es.total}: ${es.name.ifBlank { "…" }}")
                         androidx.compose.material3.LinearProgressIndicator(
                             progress = { es.progress },
                             modifier = Modifier.fillMaxWidth()
                         )
                         Text(
-                            "贴图导出为 PNG，模型为 OBJ，音频为 WAV…\n单个失败会跳过并继续，不会中断。",
+                            "Tekstur disimpan sebagai PNG, model sebagai OBJ, dan audio sebagai WAV.\nJika satu aset gagal, proses tetap berlanjut.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -343,7 +343,7 @@ fun AssetListScreen(
                 },
                 confirmButton = {
                     TextButton(onClick = { viewModel.requestCancelExport() }) {
-                        Text("取消剩余")
+                        Text("Batalkan sisanya")
                     }
                 }
             )
@@ -351,17 +351,17 @@ fun AssetListScreen(
         is MainViewModel.ExportState.Done -> {
             AlertDialog(
                 onDismissRequest = { viewModel.consumeExportState() },
-                title = { Text(if (es.cancelled) "导出已取消" else "导出完成") },
+                title = { Text(if (es.cancelled) "Ekspor dibatalkan" else "Ekspor selesai") },
                 text = {
                     Text(
                         buildString {
-                            append("成功导出 ${es.okCount} 个")
-                            if (es.cancelled) append("（已取消剩余部分）")
-                            append("\n保存位置：${es.dirPath}")
+                            append("Berhasil mengekspor ${es.okCount} aset")
+                            if (es.cancelled) append(" (sisa proses dibatalkan)")
+                            append("\nLokasi penyimpanan: ${es.dirPath}")
                             if (es.failures.isNotEmpty()) {
-                                append("\n\n失败 ${es.failures.size} 个：")
+                                append("\n\n${es.failures.size} aset gagal: ")
                                 append(es.failures.take(3).joinToString("\n"))
-                                if (es.failures.size > 3) append("\n… 等 ${es.failures.size} 项")
+                                if (es.failures.size > 3) append("\n… ${es.failures.size} aset lainnya")
                             }
                         },
                         style = MaterialTheme.typography.bodySmall
@@ -371,7 +371,7 @@ fun AssetListScreen(
                     TextButton(onClick = {
                         viewModel.consumeExportState()
                         exitSelection()
-                    }) { Text("完成") }
+                    }) { Text("Selesai") }
                 }
             )
         }
@@ -393,7 +393,7 @@ fun AssetListScreen(
     batchResult?.let { (ok, msg) ->
         AlertDialog(
             onDismissRequest = { batchResult = null },
-            title = { Text(if (ok) "替换完成" else "替换失败") },
+            title = { Text(if (ok) "Penggantian selesai" else "Gagal mengganti") },
             text = { Text(msg) },
             confirmButton = {
                 if (ok) {
@@ -404,14 +404,14 @@ fun AssetListScreen(
                         } else {
                             showPermDialog = true
                         }
-                    }) { Text("另存为") }
+                    }) { Text("Simpan sebagai") }
                 } else {
-                    TextButton(onClick = { batchResult = null }) { Text("知道了") }
+                    TextButton(onClick = { batchResult = null }) { Text("Mengerti") }
                 }
             },
             dismissButton = {
                 if (ok) {
-                    TextButton(onClick = { batchResult = null }) { Text("稍后") }
+                    TextButton(onClick = { batchResult = null }) { Text("Nanti") }
                 }
             }
         )
@@ -421,12 +421,12 @@ fun AssetListScreen(
     if (showPermDialog) {
         AlertDialog(
             onDismissRequest = { showPermDialog = false },
-            title = { Text("需要存储权限") },
+            title = { Text("Perlu izin akses penyimpanan") },
             text = {
                 Text(
-                    "保存替换后的文件需要「所有文件访问」权限。\n\n" +
-                        "点击「去授权」跳转系统设置页，找到本应用并开启" +
-                        "\"允许管理所有文件\"后返回即可。",
+                    "Untuk menyimpan file pengganti, aplikasi memerlukan izin akses semua file.\n\n" +
+                        "Tekan 'Buka pengaturan', temukan aplikasi ini, lalu aktifkan izin " +
+                        "\"Izinkan mengelola semua file\". Setelah itu, kembali ke aplikasi.",
                     style = MaterialTheme.typography.bodySmall
                 )
             },
@@ -434,10 +434,10 @@ fun AssetListScreen(
                 TextButton(onClick = {
                     showPermDialog = false
                     requestStorage()
-                }) { Text("去授权") }
+                }) { Text("Buka pengaturan") }
             },
             dismissButton = {
-                TextButton(onClick = { showPermDialog = false }) { Text("取消") }
+                TextButton(onClick = { showPermDialog = false }) { Text("Batal") }
             }
         )
     }
@@ -522,7 +522,7 @@ private fun AssetRow(
         },
         headlineContent = {
             Text(
-                item.name.ifEmpty { "(未命名)" },
+                item.name.ifEmpty { "(Tanpa nama)" },
                 style = MaterialTheme.typography.bodyLarge,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -532,7 +532,7 @@ private fun AssetRow(
             Text(
                 // v1.10.0：懒条目（磁盘暂存）加轻标记——点开时自动按需装载（约 1 秒）
                 "${item.type.name} · ${formatBytes(item.byteSize)} · ${item.fileName}" +
-                    if (item.isLazy) " · 磁盘" else "",
+                    if (item.isLazy) " · Penyimpanan" else "",
                 style = MaterialTheme.typography.bodySmall,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -549,19 +549,19 @@ private fun AssetRow(
 }
 
 private fun prettyTypeName(name: String): String = when (name) {
-    "Texture2D" -> "贴图"
-    "Sprite" -> "精灵"
-    "TextAsset" -> "文本"
-    "AudioClip" -> "音频"
-    "MonoBehaviour" -> "脚本"
-    "GameObject" -> "对象"
-    "Material" -> "材质"
-    "Shader" -> "着色器"
-    "Font" -> "字体"
-    "VideoClip" -> "视频"
-    "MovieTexture" -> "视频"
-    "AnimatorController" -> "动画控制器"
-    "AnimationClip" -> "动画"
-    "Transform" -> "变换"
+    "Texture2D" -> "Tekstur"
+    "Sprite" -> "Sprite"
+    "TextAsset" -> "Teks"
+    "AudioClip" -> "Audio"
+    "MonoBehaviour" -> "Skrip"
+    "GameObject" -> "Objek"
+    "Material" -> "Material"
+    "Shader" -> "Shader"
+    "Font" -> "Font"
+    "VideoClip" -> "Video"
+    "MovieTexture" -> "Video"
+    "AnimatorController" -> "Pengontrol animasi"
+    "AnimationClip" -> "Animasi"
+    "Transform" -> "Transformasi"
     else -> name
 }

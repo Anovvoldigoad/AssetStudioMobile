@@ -169,9 +169,9 @@ fun AssetDetailScreen(
     var showPermDialog by remember { mutableStateOf(false) }
 
     if (item == null) {
-        Scaffold(topBar = { DetailTopBar("资产", onBack) }) { padding ->
+        Scaffold(topBar = { DetailTopBar("Aset", onBack) }) { padding ->
             Box(Modifier.padding(padding)) {
-                Text("资产不存在（可能已重新加载文件）", Modifier.padding(24.dp))
+                Text("Aset tidak ditemukan. Mungkin file sudah dimuat ulang.", Modifier.padding(24.dp))
             }
         }
         return
@@ -202,14 +202,14 @@ fun AssetDetailScreen(
                                 Modifier.padding(16.dp),
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Text("从磁盘载入失败", style = MaterialTheme.typography.titleSmall)
+                                Text("Gagal memuat dari penyimpanan", style = MaterialTheme.typography.titleSmall)
                                 Text(
-                                    ds.reason.ifEmpty { "该资产所在的文件无法重新读取（可能已被移动或删除）" },
+                                    ds.reason.ifEmpty { "File asal aset tidak bisa dibaca lagi. Mungkin sudah dipindahkan atau dihapus." },
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 OutlinedButton(onClick = { viewModel.requestAssetLive(assetId) }) {
-                                    Text("重试")
+                                    Text("Coba lagi")
                                 }
                             }
                         }
@@ -221,9 +221,9 @@ fun AssetDetailScreen(
                             ) {
                                 CircularProgressIndicator(modifier = Modifier.size(24.dp))
                                 Column {
-                                    Text("正在从磁盘载入「${item.name}」…", style = MaterialTheme.typography.titleSmall)
+                                    Text("Memuat ${item.name} dari penyimpanan…", style = MaterialTheme.typography.titleSmall)
                                     Text(
-                                        "只载入该项所在的这一个文件，通常 1 秒内完成",
+                                        "Hanya file yang memuat aset ini yang dibuka.",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -237,16 +237,16 @@ fun AssetDetailScreen(
                     is Mesh -> MeshPreview(obj)
                     is TextAsset -> TextPreview(obj)
                     is MonoBehaviour -> MonoPreview(obj)
-                    is Material -> RenderDumpPreview("材质信息") { RenderDumper.dumpMaterial(obj) }
-                    is Shader -> RenderDumpPreview("着色器信息") { RenderDumper.dumpShader(obj) }
+                    is Material -> RenderDumpPreview("Informasi material") { RenderDumper.dumpMaterial(obj) }
+                    is Shader -> RenderDumpPreview("Informasi shader") { RenderDumper.dumpShader(obj) }
                     // 渲染器组件：预览其引用的网格（几何数据在 Mesh 对象里，不在组件内）
                     is SkinnedMeshRenderer, is MeshFilter -> {
                         if (referencedMesh != null) {
                             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                 MeshPreview(referencedMesh)
                                 Text(
-                                    "网格来自 ${item.type.name} 引用的 Mesh" +
-                                        "（${referencedMesh.m_VertexCount} 顶点 / ${referencedMesh.m_Indices.size / 3} 三角形）",
+                                    "Mesh ini dirujuk oleh ${item.type.name}" +
+                                        " (${referencedMesh.m_VertexCount} titik / ${referencedMesh.m_Indices.size / 3} segitiga)",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -255,10 +255,10 @@ fun AssetDetailScreen(
                             // 引用为空或指向未加载的外部文件（如剥离的依赖包）
                             Card(modifier = Modifier.fillMaxWidth()) {
                                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text("资产预览", style = MaterialTheme.typography.titleSmall)
+                                    Text("Pratinjau aset", style = MaterialTheme.typography.titleSmall)
                                     Text(
-                                        "${item.type.name} 未引用可加载的网格" +
-                                            "（引用为空，或指向未加载的外部依赖文件），\n可导出原始数据或 TypeTree 转储。",
+                                        "${item.type.name} tidak memiliki mesh yang bisa dimuat" +
+                                            " (referensi kosong atau menunjuk file lain yang belum dimuat).\nKamu masih bisa mengekspor data mentah atau TypeTree.",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -275,25 +275,25 @@ fun AssetDetailScreen(
                 Card(modifier = Modifier.fillMaxWidth()) {
                     SelectionContainer {
                         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text("资产信息", style = MaterialTheme.typography.titleSmall)
+                            Text("Informasi aset", style = MaterialTheme.typography.titleSmall)
                             Spacer(Modifier.height(6.dp))
-                            InfoRow("类型", item.type.name)
+                            InfoRow("Jenis", item.type.name)
                             InfoRow("PathID", item.pathID.toString())
-                            InfoRow("大小", formatBytes(item.byteSize))
-                            InfoRow("所在文件", item.fileName)
+                            InfoRow("Ukuran", formatBytes(item.byteSize))
+                            InfoRow("File asal", item.fileName)
                             if (item.containerPath.isNotEmpty()) {
-                                InfoRow("容器路径", item.containerPath.substringAfterLast('/'))
+                                InfoRow("Lokasi dalam paket", item.containerPath.substringAfterLast('/'))
                             }
                             if (item.obj is Texture2D) {
                                 val t = item.obj as Texture2D
-                                InfoRow("尺寸", "${t.m_Width} x ${t.m_Height}")
-                                InfoRow("格式", t.m_TextureFormat.name)
-                                InfoRow("Mip 级数", t.m_MipCount.toString())
+                                InfoRow("Dimensi", "${t.m_Width} x ${t.m_Height}")
+                                InfoRow("Format", t.m_TextureFormat.name)
+                                InfoRow("Jumlah tingkat mipmap", t.m_MipCount.toString())
                                 val streamed = t.m_StreamData
                                 if (streamed != null && streamed.path.isNotEmpty()) {
-                                    InfoRow("数据源", "流式 (${streamed.path.substringAfterLast('/')})")
+                                    InfoRow("Sumber data", "Eksternal (${streamed.path.substringAfterLast('/')})")
                                 } else {
-                                    InfoRow("数据源", "内联")
+                                    InfoRow("Sumber data", "Tersimpan langsung")
                                 }
                             }
                             if (item.obj is Sprite) {
@@ -301,49 +301,49 @@ fun AssetDetailScreen(
                                 val info = try { s.getTextureInfo() } catch (e: Exception) { null }
                                 if (info != null) {
                                     InfoRow(
-                                        "纹理区域",
+                                        "Area tekstur",
                                         "%.0f x %.0f".format(info.textureRect.width, info.textureRect.height)
                                     )
                                 }
                             }
                             if (item.obj is Mesh) {
                                 val m = item.obj as Mesh
-                                InfoRow("子网格", m.m_SubMeshes.size.toString())
-                                InfoRow("顶点数", m.m_VertexCount.toString())
-                                InfoRow("三角形", (m.m_Indices.size / 3).toString())
-                                InfoRow("压缩网格", if (m.m_CompressedMesh != null &&
+                                InfoRow("submesh", m.m_SubMeshes.size.toString())
+                                InfoRow("Jumlah titik", m.m_VertexCount.toString())
+                                InfoRow("Segitiga", (m.m_Indices.size / 3).toString())
+                                InfoRow("Mesh terkompresi", if (m.m_CompressedMesh != null &&
                                     (m.m_CompressedMesh!!.m_Vertices.m_NumItems > 0 ||
                                         m.m_CompressedMesh!!.m_Triangles.m_NumItems > 0)
-                                ) "是（已解压）" else "否")
+                                ) "Ya (sudah dibuka)" else "Tidak")
                             }
                             if (item.obj is SkinnedMeshRenderer) {
                                 val smr = item.obj as SkinnedMeshRenderer
-                                InfoRow("骨骼数量", smr.m_Bones.size.toString())
-                                InfoRow("材质槽位", smr.m_Materials.size.toString())
+                                InfoRow("Jumlah tulang", smr.m_Bones.size.toString())
+                                InfoRow("Slot material", smr.m_Materials.size.toString())
                                 smr.m_BlendShapeWeights?.let {
-                                    InfoRow("混合形状权重", it.size.toString())
+                                    InfoRow("Bobot blend shape", it.size.toString())
                                 }
                                 InfoRow(
-                                    "蒙皮网格",
-                                    if (smr.m_Mesh.isNull) "无引用"
+                                    "Skinned mesh",
+                                    if (smr.m_Mesh.isNull) "Tidak ada referensi"
                                     else referencedMesh?.let { m ->
-                                        "${m.m_VertexCount} 顶点 / ${m.m_SubMeshes.size} 子网格"
-                                    } ?: "引用未加载（外部文件）"
+                                        "${m.m_VertexCount} titik / ${m.m_SubMeshes.size} submesh"
+                                    } ?: "Referensi belum dimuat (file eksternal)"
                                 )
                             }
                             if (item.obj is MeshFilter) {
                                 val mf = item.obj as MeshFilter
                                 InfoRow(
-                                    "网格引用",
-                                    if (mf.m_Mesh.isNull) "无引用"
+                                    "Referensi mesh",
+                                    if (mf.m_Mesh.isNull) "Tidak ada referensi"
                                     else referencedMesh?.let { m ->
-                                        "${m.m_VertexCount} 顶点 / ${m.m_SubMeshes.size} 子网格"
-                                    } ?: "引用未加载（外部文件）"
+                                        "${m.m_VertexCount} titik / ${m.m_SubMeshes.size} submesh"
+                                    } ?: "Referensi belum dimuat (file eksternal)"
                                 )
                             }
                             if (item.obj is AudioClip) {
                                 val samples = try { (item.obj as AudioClip).listSamples().size } catch (e: Exception) { 0 }
-                                InfoRow("音频样本", "$samples")
+                                InfoRow("Jumlah sampel audio", "$samples")
                             }
                         }
                     }
@@ -358,7 +358,7 @@ fun AssetDetailScreen(
                     }
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text("关联资产", style = MaterialTheme.typography.titleSmall)
+                            Text("Aset terkait", style = MaterialTheme.typography.titleSmall)
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically
@@ -369,18 +369,18 @@ fun AssetDetailScreen(
                                         style = MaterialTheme.typography.bodyMedium
                                     )
                                     Text(
-                                        "${mesh.m_VertexCount} 顶点 · ${mesh.m_SubMeshes.size} 子网格 · ${mesh.m_Indices.size / 3} 三角形",
+                                        "${mesh.m_VertexCount} titik · ${mesh.m_SubMeshes.size} submesh · ${mesh.m_Indices.size / 3} Segitiga",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                                 if (meshAssetId != null) {
                                     TextButton(onClick = { onOpenAsset(meshAssetId) }) {
-                                        Text("查看")
+                                        Text("Lihat")
                                     }
                                 } else {
                                     Text(
-                                        "外部文件",
+                                        "File eksternal",
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -413,7 +413,7 @@ fun AssetDetailScreen(
                     ) {
                         Icon(Icons.Filled.FileDownload, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.size(6.dp))
-                        Text(if (item.obj == null) "载入中…" else "导出")
+                        Text(if (item.obj == null) "Memuat…" else "Ekspor")
                     }
                     if (texture != null) {
                         Button(
@@ -428,7 +428,7 @@ fun AssetDetailScreen(
                         ) {
                             Icon(Icons.Filled.SwapHoriz, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.size(6.dp))
-                            Text("替换贴图")
+                            Text("Ganti tekstur")
                         }
                     }
                     // 替换模型：Mesh 资产本身，或渲染器组件（SkinnedMeshRenderer/MeshFilter）引用的 Mesh
@@ -445,7 +445,7 @@ fun AssetDetailScreen(
                         ) {
                             Icon(Icons.Filled.SwapHoriz, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.size(6.dp))
-                            Text(if (meshObj != null) "替换模型" else "替换网格")
+                            Text(if (meshObj != null) "Ganti model" else "Ganti mesh")
                         }
                     }
                 }
@@ -460,17 +460,17 @@ fun AssetDetailScreen(
                     ) {
                         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(
-                                "替换完成，等待另存",
+                                "Penggantian selesai. Simpan hasilnya.",
                                 style = MaterialTheme.typography.titleSmall,
                                 color = MaterialTheme.colorScheme.onSecondaryContainer
                             )
                             Text(
-                                "已重打包 ${formatBytes(result.bytes.size.toLong())}",
+                                "Berhasil dikemas ulang: ${formatBytes(result.bytes.size.toLong())}",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSecondaryContainer
                             )
                             Text(
-                                "提示：另存时建议保持原文件名与后缀（如 .ab/.bundle），可直接替换游戏内同名文件。",
+                                "Saran: gunakan nama dan ekstensi file asli (misalnya .ab/.bundle) agar dapat menggantikan file yang sama di game.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
                             )
@@ -484,7 +484,7 @@ fun AssetDetailScreen(
                                 },
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Text("另存为新文件")
+                                Text("Simpan sebagai file baru")
                             }
                         }
                     }
@@ -505,21 +505,21 @@ fun AssetDetailScreen(
         if (replaceTargetMesh != null) {
             AlertDialog(
                 onDismissRequest = { pendingObj = null },
-                title = { Text("确认替换模型") },
+                title = { Text("Konfirmasi penggantian model") },
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("原模型: ${replaceTargetMesh.m_VertexCount} 顶点 / ${replaceTargetMesh.m_SubMeshes.size} 子网格 / ${replaceTargetMesh.m_Indices.size / 3} 三角形")
-                        Text("新模型: ${pending.summary}")
+                        Text("Model lama: ${replaceTargetMesh.m_VertexCount} titik / ${replaceTargetMesh.m_SubMeshes.size} submesh / ${replaceTargetMesh.m_Indices.size / 3} Segitiga")
+                        Text("Model baru: ${pending.summary}")
                         if (meshObj == null) {
                             Text(
-                                "将替换 ${item.type.name} 引用的 Mesh（${replaceTargetMesh.m_Name ?: "#" + replaceTargetMesh.m_PathID}），骨骼绑定与材质槽保持不变。",
+                                "Mesh yang dirujuk oleh ${item.type.name} akan diganti (${replaceTargetMesh.m_Name ?: "#" + replaceTargetMesh.m_PathID}). Hubungan tulang dan slot material tetap dipertahankan.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.primary
                             )
                         }
                         Text(
-                            "替换将重写顶点 / 法线 / UV / 索引 / 包围盒（名称保留）。" +
-                                "若缺少法线或 UV，将自动生成占位数据；三角带模型请先转换为三角形列表。",
+                            "Penggantian akan memperbarui titik, normal, UV, indeks, dan batas model tanpa mengubah namanya." +
+                                "Jika normal atau UV tidak ada, data sementara akan dibuat otomatis. Ubah triangle strip menjadi daftar segitiga terlebih dahulu.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -529,18 +529,18 @@ fun AssetDetailScreen(
                     TextButton(onClick = {
                         val text = pending.text
                         pendingObj = null
-                        busy = "正在替换模型并重打包…"
+                        busy = "Sedang mengganti model dan mengemas ulang…"
                         viewModel.replaceMesh(replaceTargetMesh, text) { ok, msg ->
                             busy = null
                             message = msg
                         }
                     }) {
-                        Text("替换")
+                        Text("Ganti")
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { pendingObj = null }) {
-                        Text("取消")
+                        Text("Batal")
                     }
                 }
             )
@@ -551,14 +551,14 @@ fun AssetDetailScreen(
     if (pendingBitmap != null && texture != null) {
         AlertDialog(
             onDismissRequest = { pendingBitmap = null },
-            title = { Text("确认替换贴图") },
+            title = { Text("Konfirmasi penggantian tekstur") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("原贴图: ${texture.m_Width} x ${texture.m_Height} (${texture.m_TextureFormat.name})")
-                    Text("新贴图: ${pendingBitmap!!.width} x ${pendingBitmap!!.height}")
+                    Text("Tekstur lama: ${texture.m_Width} x ${texture.m_Height} (${texture.m_TextureFormat.name})")
+                    Text("Tekstur baru: ${pendingBitmap!!.width} x ${pendingBitmap!!.height}")
                     if (pendingBitmap!!.width != texture.m_Width || pendingBitmap!!.height != texture.m_Height) {
                         Text(
-                            "注意：尺寸与原图不同，尺寸字段将同步更新；引用该贴图的精灵裁剪区域可能偏移。",
+                            "Perhatian: ukuran baru berbeda. Dimensi aset akan diperbarui, tetapi area potong sprite yang memakai tekstur ini mungkin bergeser.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.error
                         )
@@ -566,7 +566,7 @@ fun AssetDetailScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(checked = keepFormat, onCheckedChange = { keepFormat = it })
                         Text(
-                            "尽量保持原格式（不支持时回退 RGBA32）",
+                            "Pertahankan format asli jika didukung; jika tidak, gunakan RGBA32",
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
@@ -576,18 +576,18 @@ fun AssetDetailScreen(
                 TextButton(onClick = {
                     val bmp = pendingBitmap!!
                     pendingBitmap = null
-                    busy = "正在替换并重打包…"
+                    busy = "Sedang mengganti dan mengemas ulang…"
                     viewModel.replaceTexture(texture, bmp, keepFormat) { ok, msg ->
                         busy = null
                         message = msg
                     }
                 }) {
-                    Text("替换")
+                    Text("Ganti")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { pendingBitmap = null }) {
-                    Text("取消")
+                    Text("Batal")
                 }
             }
         )
@@ -597,12 +597,12 @@ fun AssetDetailScreen(
     if (showPermDialog) {
         AlertDialog(
             onDismissRequest = { showPermDialog = false },
-            title = { Text("需要存储权限") },
+            title = { Text("Perlu izin akses penyimpanan") },
             text = {
                 Text(
-                    "应用内保存文件需要「所有文件访问」权限。\n\n" +
-                        "点击「去授权」跳转系统设置页，找到本应用并开启" +
-                        "\"允许管理所有文件\"后返回即可。",
+                    "Untuk menyimpan file, aplikasi memerlukan izin akses semua file.\n\n" +
+                        "Tekan 'Buka pengaturan', temukan aplikasi ini, lalu aktifkan izin " +
+                        "\"Izinkan mengelola semua file\". Setelah itu, kembali ke aplikasi.",
                     style = MaterialTheme.typography.bodySmall
                 )
             },
@@ -610,10 +610,10 @@ fun AssetDetailScreen(
                 TextButton(onClick = {
                     showPermDialog = false
                     requestStorage()
-                }) { Text("去授权") }
+                }) { Text("Buka pengaturan") }
             },
             dismissButton = {
-                TextButton(onClick = { showPermDialog = false }) { Text("取消") }
+                TextButton(onClick = { showPermDialog = false }) { Text("Batal") }
             }
         )
     }
@@ -628,14 +628,14 @@ fun AssetDetailScreen(
                 when (request) {
                     is SaveRequest.Export -> {
                         val target = item ?: return@FileSaveDialog
-                        busy = "正在导出…"
+                        busy = "Sedang mengekspor…"
                         viewModel.exportAssetToFile(target, file) { ok, msg ->
                             busy = null
                             message = msg
                         }
                     }
                     is SaveRequest.Pending -> {
-                        busy = "正在保存…"
+                        busy = "Sedang menyimpan…"
                         viewModel.savePendingToFile(file) { ok, msg ->
                             busy = null
                             message = msg
@@ -660,7 +660,7 @@ fun AssetDetailScreen(
                 val file = files.firstOrNull() ?: return@FilePickerDialog
                 when (target) {
                     PickTarget.Texture -> {
-                        busy = "正在读取图片…"
+                        busy = "Sedang membaca gambar…"
                         scope.launch {
                             val bmp = withContext(Dispatchers.IO) {
                                 try {
@@ -673,12 +673,12 @@ fun AssetDetailScreen(
                             if (bmp != null) {
                                 pendingBitmap = bmp
                             } else {
-                                message = "图片读取失败，请换一张图片"
+                                message = "Gambar tidak bisa dibuka. Pilih gambar lain."
                             }
                         }
                     }
                     PickTarget.Model -> {
-                        busy = "正在读取模型文件…"
+                        busy = "Sedang membaca file model…"
                         scope.launch {
                             // 读取 + 顶点/面统计全部在 IO 线程完成后才回主线程弹确认框，
                             // 主线程不做任何全文扫描（否则大文件会 ANR）
@@ -687,7 +687,7 @@ fun AssetDetailScreen(
                                     val bytes = file.readBytes()
                                     if (bytes.size > 96 * 1024 * 1024) {
                                         return@withContext null to
-                                            "文件过大（${bytes.size / 1024 / 1024} MB），请确认选择的是 OBJ 文本文件"
+                                            "File terlalu besar (${bytes.size / 1024 / 1024} MB). Pastikan file yang dipilih berformat OBJ teks."
                                     }
                                     val text = bytes.toString(Charsets.UTF_8)
                                     var v = 0
@@ -696,11 +696,11 @@ fun AssetDetailScreen(
                                         if (line.startsWith("v ")) v++
                                         else if (line.startsWith("f ")) f++
                                     }
-                                    PendingObj(text, "$v 顶点 / $f 面") to null
+                                    PendingObj(text, "$v  titik / $f bidang") to null
                                 } catch (e: OutOfMemoryError) {
-                                    null to "内存不足：文件太大，无法读入"
+                                    null to "RAM tidak cukup untuk membaca file sebesar ini."
                                 } catch (e: Exception) {
-                                    null to "OBJ 文件读取失败：${e.message}"
+                                    null to "Gagal membaca file OBJ: ${e.message}"
                                 }
                             }
                             busy = null
@@ -743,7 +743,7 @@ private fun DetailTopBar(title: String, onBack: () -> Unit) {
         },
         navigationIcon = {
             IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali")
             }
         }
     )
@@ -756,7 +756,7 @@ private fun TexturePreview(viewModel: MainViewModel, texture: Texture2D) {
     val bitmap by produceState<Bitmap?>(initialValue = null, texture) {
         value = viewModel.decodeTexture(texture)
     }
-    PreviewCard(bitmap, "贴图预览")
+    PreviewCard(bitmap, "Pratinjau tekstur")
 }
 
 @Composable
@@ -764,7 +764,7 @@ private fun SpritePreview(viewModel: MainViewModel, sprite: Sprite) {
     val bitmap by produceState<Bitmap?>(initialValue = null, sprite) {
         value = viewModel.decodeSprite(sprite)
     }
-    PreviewCard(bitmap, "精灵预览")
+    PreviewCard(bitmap, "Pratinjau sprite")
 }
 
 @Composable
@@ -782,12 +782,12 @@ private fun PreviewCard(bitmap: Bitmap?, title: String) {
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            "无法预览",
+                            "Tidak bisa menampilkan pratinjau",
                             style = MaterialTheme.typography.titleSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            "格式不支持或流数据缺失",
+                            "Format tidak didukung atau data aset tidak tersedia.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -873,7 +873,7 @@ private fun AdaptiveImagePreview(bitmap: Bitmap) {
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
-                        "缩放",
+                        "Perbesar/perkecil",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -894,8 +894,8 @@ private fun AdaptiveImagePreview(bitmap: Bitmap) {
                 Text(
                     buildString {
                         append("$w x $h")
-                        if (scale > 1.01f) append("（预览放大 ${"%.1f".format(scale)}x）")
-                        if (scrollable) append("，超出部分可滑动查看")
+                        if (scale > 1.01f) append(" (pratinjau diperbesar ${"%.1f".format(scale)}x）")
+                        if (scrollable) append(". Geser untuk melihat bagian yang tidak tampak.")
                     },
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -909,17 +909,17 @@ private fun AdaptiveImagePreview(bitmap: Bitmap) {
 private fun TextPreview(textAsset: TextAsset) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("文本内容", style = MaterialTheme.typography.titleSmall)
+            Text("Isi teks", style = MaterialTheme.typography.titleSmall)
             val content = remember(textAsset) {
                 try {
                     val raw = textAsset.m_Script
                     if (raw.size > 200_000) {
-                        String(raw.copyOfRange(0, 200_000), Charsets.UTF_8) + "\n…（已截断，共 ${raw.size} 字节）"
+                        String(raw.copyOfRange(0, 200_000), Charsets.UTF_8) + "\n… (dipotong, total ${raw.size}  byte)"
                     } else {
                         String(raw, Charsets.UTF_8)
                     }
                 } catch (e: Exception) {
-                    "(非 UTF-8 文本，共 ${textAsset.m_Script.size} 字节)"
+                    "(Teks bukan UTF-8, total ${textAsset.m_Script.size} byte)"
                 }
             }
             Text(
@@ -939,7 +939,7 @@ private fun TextPreview(textAsset: TextAsset) {
 private fun MonoPreview(mono: MonoBehaviour) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("TypeTree 转储", style = MaterialTheme.typography.titleSmall)
+            Text("Data TypeTree", style = MaterialTheme.typography.titleSmall)
             val dump by produceState<String?>(initialValue = null, mono) {
                 value = withContext(Dispatchers.IO) {
                     try {
@@ -948,15 +948,15 @@ private fun MonoPreview(mono: MonoBehaviour) {
                             mono.reader.reset()
                             TypeTreeHelper.readTypeString(typeTree, mono.reader)
                         } else {
-                            "（该对象无 TypeTree 信息）"
+                            "(Objek ini tidak memiliki informasi TypeTree)"
                         }
                     } catch (e: Exception) {
-                        "转储失败: ${e.message}"
+                        "Gagal menampilkan data: ${e.message}"
                     }
                 }
             }
             Text(
-                dump ?: "正在转储…",
+                dump ?: "Menyiapkan data…",
                 fontFamily = FontFamily.Monospace,
                 fontSize = 11.sp,
                 style = MaterialTheme.typography.bodySmall,
@@ -982,13 +982,13 @@ private fun RenderDumpPreview(title: String, dump: () -> String) {
                     try {
                         dump()
                     } catch (e: Exception) {
-                        "转储失败: ${e.message}"
+                        "Gagal menampilkan data: ${e.message}"
                     }
                 }
             }
             SelectionContainer {
                 Text(
-                    text ?: "正在解析…",
+                    text ?: "Sedang membaca data…",
                     fontFamily = FontFamily.Monospace,
                     fontSize = 11.sp,
                     style = MaterialTheme.typography.bodySmall,
@@ -1005,9 +1005,9 @@ private fun RenderDumpPreview(title: String, dump: () -> String) {
 private fun GenericPreview(item: AssetItem) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("资产预览", style = MaterialTheme.typography.titleSmall)
+            Text("Pratinjau aset", style = MaterialTheme.typography.titleSmall)
             Text(
-                "${item.type.name} 类型暂不支持可视化预览，\n可导出原始数据或 TypeTree 转储。",
+                "Pratinjau untuk jenis ${item.type.name} belum tersedia.\nKamu masih bisa mengekspor data mentah atau TypeTree.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

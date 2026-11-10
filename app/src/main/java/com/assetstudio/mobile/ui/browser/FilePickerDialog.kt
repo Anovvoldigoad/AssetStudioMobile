@@ -84,7 +84,7 @@ fun FilePickerDialog(
     /** 长按文件夹 → 收藏到快捷访问 */
     fun addToQuickAccess(dir: File) {
         quickAccess = QuickAccessStore.add(context, dir.absolutePath)
-        Toast.makeText(context, "已添加到快捷访问：${dir.name}", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, "Ditambahkan ke akses cepat: ${dir.name}", Toast.LENGTH_SHORT).show()
     }
 
     /** 点击快捷访问条 → 跳转（目录被删则移除该收藏） */
@@ -94,7 +94,7 @@ fun FilePickerDialog(
             currentDir = dir
         } else {
             quickAccess = QuickAccessStore.remove(context, path)
-            Toast.makeText(context, "目录已不存在，已从快捷访问移除", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Folder sudah tidak ada dan dihapus dari akses cepat", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -102,7 +102,7 @@ fun FilePickerDialog(
     LaunchedEffect(currentDir, pickDirectory) {
         val listed = currentDir.listFiles()
         if (listed == null) {
-            listError = "无法读取该目录（权限不足？）"
+            listError = "Folder tidak bisa dibaca. Periksa izin akses."
             dirs = emptyList()
             files = emptyList()
         } else {
@@ -122,9 +122,9 @@ fun FilePickerDialog(
         title = {
             Text(
                 when {
-                    pickDirectory -> "选择文件夹"
-                    allowMultiple -> "选择文件（可多选）"
-                    else -> "选择文件"
+                    pickDirectory -> "Pilih folder"
+                    allowMultiple -> "Pilih file (bisa lebih dari satu)"
+                    else -> "Pilih file"
                 }
             )
         },
@@ -136,7 +136,7 @@ fun FilePickerDialog(
                     onJump = { jumpTo(it) },
                     onRemove = { path ->
                         quickAccess = QuickAccessStore.remove(context, path)
-                        Toast.makeText(context, "已从快捷访问移除：${File(path).name}", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Dihapus dari akses cepat: ${File(path).name}", Toast.LENGTH_SHORT).show()
                     }
                 )
 
@@ -149,7 +149,7 @@ fun FilePickerDialog(
                         onClick = { currentDir.parentFile?.let { currentDir = it } },
                         enabled = currentDir.parentFile != null
                     ) {
-                        Icon(Icons.Filled.ArrowUpward, contentDescription = "返回上级")
+                        Icon(Icons.Filled.ArrowUpward, contentDescription = "Ke folder atas")
                     }
                     Text(
                         currentDir.absolutePath,
@@ -178,7 +178,7 @@ fun FilePickerDialog(
                 ) {
                     if (dirs.isEmpty() && files.isEmpty() && listError == null) {
                         Text(
-                            if (pickDirectory) "（无子文件夹）" else "（无匹配文件）",
+                            if (pickDirectory) "(Tidak ada subfolder)" else "(Tidak ada file yang cocok)",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(12.dp)
@@ -273,7 +273,7 @@ fun FilePickerDialog(
                 }
                 if (extensions != null) {
                     Text(
-                        "仅显示：${extensions.joinToString(" / ") { ".$it" }}",
+                        "Hanya menampilkan: ${extensions.joinToString(" / ") { ".$it" }}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -284,7 +284,7 @@ fun FilePickerDialog(
             when {
                 pickDirectory -> {
                     Button(onClick = { onConfirm(listOf(currentDir)) }) {
-                        Text("选择此文件夹")
+                        Text("Gunakan folder ini")
                     }
                 }
                 allowMultiple -> {
@@ -295,13 +295,13 @@ fun FilePickerDialog(
                         },
                         enabled = selected.isNotEmpty()
                     ) {
-                        Text("打开 (${selected.size})")
+                        Text("Buka (${selected.size})")
                     }
                 }
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("取消") }
+            TextButton(onClick = onDismiss) { Text("Batal") }
         }
     )
 }

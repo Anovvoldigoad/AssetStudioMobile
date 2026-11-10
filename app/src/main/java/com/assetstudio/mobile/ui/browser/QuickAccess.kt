@@ -92,7 +92,7 @@ fun QuickAccessRow(
     if (entries.isEmpty()) return
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
-            "快捷访问（长按文件夹添加）",
+            "Akses cepat (tahan folder untuk menambahkannya)",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
