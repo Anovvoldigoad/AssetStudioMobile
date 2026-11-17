@@ -15,3 +15,6 @@ This branch turns the existing AssetStudioMobile Kotlin/C++ Android app into a m
 - Existing Mesh/Texture replacement has version/format constraints.
 - No automatic installation into game data directories, no modification of originals.
 - CI compiling does NOT prove success on a real MLBB bundle or Android device. In-game validation is necessary.
+
+## CI test note (2026-11-17)
+The full existing baseline suite ran 132 tests, with six failures in old MCP tests (McpCoreTest, McpHttpServerTest, McpRendererTest and McpStartFailureTest). These failures are unrelated to the new MLBB UI/classifier files. The APK build workflow runs the dedicated MlbbCategoryTest suite, then assembles the APK. Full baseline test failures remain open and must not be reported as passing. APK startup and MLBB real-game compatibility still need physical device tests.
