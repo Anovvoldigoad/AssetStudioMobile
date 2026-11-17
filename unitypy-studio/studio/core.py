@@ -269,6 +269,7 @@ class Studio:
             data.m_Script = new_text
             obj.patch(data)
             self.dirty.add(int(index))
+            self.last_output = None
             return self.inspect(index)
 
     def edit_texture(self, index, png):
@@ -287,6 +288,7 @@ class Studio:
             data.image = img.convert("RGBA")
             obj.patch(data)
             self.dirty.add(int(index))
+            self.last_output = None
             return self.inspect(index)
 
     def edit_json(self, index, tree):
@@ -299,6 +301,7 @@ class Studio:
                 raise ValueError("Kunci paling luar TypeTree tidak boleh ditambah atau dihapus")
             obj.patch(_unjsonable(tree))
             self.dirty.add(int(index))
+            self.last_output = None
             return self.inspect(index)
 
     def rig_report(self, other_path=None):
