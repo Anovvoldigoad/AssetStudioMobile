@@ -91,7 +91,7 @@ def make_handler(studio, secret):
                     path_obj = studio.last_output
                     return self._send(200, path_obj.read_bytes(), "application/octet-stream", path_obj.name)
                 return self._json(404, {"error": "Endpoint tidak ditemukan"})
-            except (ValueError, KeyError, OSError, ImportError, RuntimeError) as exc:
+            except Exception as exc:
                 return self._json(400, {"error": str(exc)})
 
         def do_POST(self):
@@ -119,7 +119,7 @@ def make_handler(studio, secret):
                 if path == "/api/save":
                     return self._json(200, studio.save())
                 return self._json(404, {"error": "Endpoint tidak ditemukan"})
-            except (ValueError, KeyError, OSError, ImportError, RuntimeError, json.JSONDecodeError) as exc:
+            except Exception as exc:
                 return self._json(400, {"error": str(exc)})
 
     return Handler
