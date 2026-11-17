@@ -52,10 +52,13 @@ def make_handler(studio, secret):
         def do_GET(self):
             try:
                 path = self._path()
-                if path == "/":
-                    html = (ROOT / "index.html").read_text(encoding="utf-8")
+                if path in ("/", "/advanced"):
+                    page = "mlbb.html" if path == "/" else "index.html"
+                    html = (ROOT / page).read_text(encoding="utf-8")
                     html = html.replace("__STUDIO_TOKEN__", secret)
                     return self._send(200, html.encode(), "text/html; charset=utf-8")
+                if path in ("/mlbb.js", "/mesh_viewer.js"):
+                    return self._send(200, (ROOT / path.lstrip("/")).read_bytes(), "application/javascript; charset=utf-8")
                 if path == "/api/health":
                     try:
                         import UnityPy
@@ -65,6 +68,15 @@ def make_handler(studio, secret):
                     return self._json(200, {"ok": True, "unitypy": version})
                 if not self._authorized():
                     return self._json(403, {"error": "Token sesi tidak valid"})
+                if path == "/api/mlbb/overview":
+                    return self._json(200, studio.mlbb_overview())
+                if path == "/api/mlbb/textures":
+                    return self._json(200, studio.mlbb_textures(self._qs().get("search", "")))
+                if path == "/api/mlbb/related":
+                    return self._json(200, studio.related_assets(self._qs()["id"]))
+                if path == "/api/mlbb/assets":
+                    q = self._qs()
+                    return self._json(200, studio.mlbb_assets(q.get("category", ""), q.get("search", ""), q.get("offset", 0)))
                 if path == "/api/summary":
                     return self._json(200, studio.summary())
                 if path == "/api/assets":
@@ -102,13 +114,26 @@ def make_handler(studio, secret):
                 if path == "/api/upload":
                     length = int(self.headers.get("Content-Length", "0"))
                     file_path = studio.store_upload(self.rfile, length, self.headers.get("X-Filename", "upload.unity3d"))
-                    return self._json(200, studio.open(file_path))
+                    return self._json(200, studio.open_project(file_path))
+                if path == "/api/plan-replacements":
+                    payload = self._incoming(96 * 1024 * 1024)
+                    return self._json(200, studio.plan_replacements(payload))
                 if path == "/api/edit-texture":
                     binary = self._incoming(64 * 1024 * 1024)
                     return self._json(200, studio.edit_texture(self._qs()["id"], binary))
                 data = json.loads(self._incoming().decode("utf-8"))
                 if path == "/api/open":
-                    return self._json(200, studio.open(data["path"]))
+                    return self._json(200, studio.open_project(data["path"]))
+                if path == "/api/archive-select":
+                    return self._json(200, studio.select_archive_item(data["index"]))
+                if path == "/api/apply-replacements":
+                    return self._json(200, studio.apply_replacements(data["ids"]))
+                if path == "/api/edit-animation":
+                    return self._json(200, studio.edit_animation_loop(data["id"], data["loop"]))
+                if path == "/api/edit-transform":
+                    return self._json(200, studio.edit_transform(data["id"], data["values"]))
+                if path == "/api/edit-material-color":
+                    return self._json(200, studio.edit_material_color(data["id"], data["property"], data["rgba"]))
                 if path == "/api/edit-text":
                     return self._json(200, studio.edit_text(data["id"], data["text"]))
                 if path == "/api/edit-json":
