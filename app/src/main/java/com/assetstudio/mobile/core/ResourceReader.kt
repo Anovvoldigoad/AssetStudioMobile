@@ -65,6 +65,21 @@ object ResourceFileResolver {
 
     /** 解析流数据：查找资源文件并截取对应区间 */
     fun readStreamData(assetsFile: SerializedFile, path: String, offset: Long, size: Long): ByteArray {
+        val fileName = getFileName(path)
+        // Already decoded from bundle? Reuse registered bytes.
+        val stored = lookupFromManager(assetsFile, fileName)
+        if (stored != null) return slice(stored, offset, size)
+        // Android filesystem: read only the requested range of .resS.
+        // This works even if the parent resource file is hundreds of MB.
+        val stream = assetsFile.assetsManager.externalResourceSliceOpener
+        val range = try { stream?.invoke(path, offset, size) } catch (_: IOException) { null }
+        if (range != null) {
+            if (range.size.toLong() != size) {
+                throw IOException("External resource slice incomplete: $fileName")
+            }
+            return range
+        }
+        // SAF/memory-backed bundles still use the original fallback.
         val data = resolve(assetsFile, path)
         return slice(data, offset, size)
     }
