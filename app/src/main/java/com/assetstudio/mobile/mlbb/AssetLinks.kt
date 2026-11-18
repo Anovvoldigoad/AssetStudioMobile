@@ -1,5 +1,8 @@
 package com.assetstudio.mobile.mlbb
 
+import com.assetstudio.mobile.core.classes.AssetBundle
+import com.assetstudio.mobile.core.classes.ResourceManager
+import com.assetstudio.mobile.core.classes.Sprite
 import com.assetstudio.mobile.core.classes.Animation
 import com.assetstudio.mobile.core.classes.Animator
 import com.assetstudio.mobile.core.classes.AnimatorController
@@ -46,6 +49,22 @@ fun assetReferences(obj: UnityObject, maxItems: Int = 120): List<AssetReference>
         }
     }
     when (obj) {
+        is AssetBundle -> {
+            obj.m_Container.take(80).forEach { (name, info) ->
+                add("Bundle: " + name.take(70), info.asset)
+            }
+            obj.m_PreloadTable.take(20).forEachIndexed { index, ptr ->
+                add("Preload " + (index + 1), ptr)
+            }
+        }
+        is ResourceManager -> obj.m_Container.take(90).forEach { (name, ptr) ->
+            add("Resource: " + name.take(70), ptr)
+        }
+        is Sprite -> {
+            obj.m_SpriteAtlas?.let { add("SpriteAtlas", it) }
+            add("Texture", obj.m_RD.texture)
+            obj.m_RD.alphaTexture?.let { add("Alpha Texture", it) }
+        }
         is GameObject -> obj.m_Components.take(80).forEachIndexed { index, ptr ->
             add("Komponen " + (index + 1), ptr)
         }
