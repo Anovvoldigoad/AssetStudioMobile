@@ -74,6 +74,9 @@ class AssetsManager {
      */
     var externalResourceOpener: ((String) -> ByteArray?)? = null
 
+    /** Direct range access to .resS larger than the Android heap budget. */
+    var externalResourceSliceOpener: ((String, Long, Long) -> ByteArray?)? = null
+
     /** Cheap availability lookup; does not load potentially huge .resS bytes. */
     var externalDependencyStatus: ((String) -> String)? = null
 
