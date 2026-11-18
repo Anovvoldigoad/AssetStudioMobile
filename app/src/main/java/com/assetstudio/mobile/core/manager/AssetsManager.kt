@@ -74,6 +74,15 @@ class AssetsManager {
      */
     var externalResourceOpener: ((String) -> ByteArray?)? = null
 
+    /** Cheap availability lookup; does not load potentially huge .resS bytes. */
+    var externalDependencyStatus: ((String) -> String)? = null
+
+    fun describeDependency(name: String): String {
+        if (assetsFileList.any { it.fileName.equals(name, ignoreCase = true) }) return "Asset dimuat"
+        if (resourceFileReaders.keys.any { it.equals(name, ignoreCase = true) }) return "Resource dimuat"
+        return externalDependencyStatus?.invoke(name) ?: "Tidak ditemukan di sesi ini"
+    }
+
     /** 对象解析失败的错误记录（文件名/类型/PathID/异常信息） */
     val errors: MutableList<String> = ArrayList()
 
@@ -134,6 +143,7 @@ class AssetsManager {
      * （0 = 全部构造完成）。
      */
     fun finishLoading(memoryGuard: (() -> Boolean)? = null): Int {
+        loadExternalAssetDependencies()
         val remaining = readAssets(memoryGuard)
         processAssets()
         return remaining
@@ -471,12 +481,65 @@ class AssetsManager {
         }
     }
 
+    /**
+     * Resolve direct serialized-file references from the chosen Android directory.
+     * Bounded to avoid bringing an entire MLBB installation into the Java heap.
+     * Missing, ambiguous and oversized dependencies are recorded rather than guessed.
+     */
+    fun loadExternalAssetDependencies(maxFiles: Int = 12, maxTotalBytes: Long = 96L * 1024 * 1024) {
+        val opener = externalResourceOpener ?: return
+        if (maxFiles <= 0 || maxTotalBytes <= 0L) return
+        val attempted = HashSet<String>()
+        var count = 0
+        var loadedBytes = 0L
+        var rounds = 0
+        while (rounds < 2 && count < maxFiles) {
+            rounds++
+            val unresolved = assetsFileList.flatMap { it.m_Externals }
+                .map { it.fileName }.filter { it.isNotBlank() }
+                .distinctBy { it.lowercase(java.util.Locale.ROOT) }
+                .filter { !assetsFileList.any { loaded -> loaded.fileName.equals(it, ignoreCase = true) } }
+            var progressed = false
+            for (name in unresolved) {
+                if (count >= maxFiles || loadedBytes >= maxTotalBytes) break
+                if (!attempted.add(name.lowercase(java.util.Locale.ROOT))) continue
+                val state = externalDependencyStatus?.invoke(name)
+                if (state == "AMBIGUOUS") {
+                    errors.add("Dependensi ambigu: $name — pilih folder yang lebih spesifik")
+                    continue
+                }
+                if (state == "TOO_LARGE") {
+                    errors.add("Dependensi terlalu besar untuk dimuat otomatis: $name")
+                    continue
+                }
+                val bytes = try { opener(name) } catch (_: Exception) { null } ?: continue
+                if (bytes.size.toLong() > maxTotalBytes - loadedBytes) {
+                    errors.add("Dependensi melewati batas memori sesi: $name")
+                    continue
+                }
+                val kind = try { FileTypeDetector.detect(name, bytes) }
+                    catch (_: Exception) { FileType.ResourceFile }
+                if (kind != FileType.AssetsFile) continue
+                val before = assetsFileList.size
+                loadFileDeferred(name, bytes)
+                if (assetsFileList.size > before) {
+                    count++
+                    loadedBytes += bytes.size
+                    progressed = true
+                }
+            }
+            if (!progressed) break
+        }
+    }
+
     /** 直接加载 .assets 时，通过 externalResourceOpener 预取外部资源并缓存 */
     private fun registerExternalResources(assetsFile: SerializedFile) {
         val opener = externalResourceOpener ?: return
         for (sharedFile in assetsFile.m_Externals) {
             val sharedFileName = sharedFile.fileName
             if (sharedFileName.isEmpty()) continue
+            val lower = sharedFileName.lowercase(java.util.Locale.ROOT)
+            if (!lower.endsWith(".ress") && !lower.endsWith(".resource")) continue
             if (getResourceFileData(sharedFileName) != null) continue // 已在内存
             val data = try {
                 opener(sharedFileName)
@@ -658,7 +721,8 @@ class AssetsManager {
 
     /** C# FindAssetsFile（忽略大小写匹配文件名） */
     fun findAssetsFile(name: String): SerializedFile? {
-        return assetsFileList.firstOrNull { it.fileName.equals(name, ignoreCase = true) }
+        // Never bind a PPtr to an arbitrary first match when names collide.
+        return assetsFileList.filter { it.fileName.equals(name, ignoreCase = true) }.singleOrNull()
     }
 
     /** C# Clear */
