@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.assetstudio.mobile.core.ClassIDType
 import com.assetstudio.mobile.core.classes.Mesh
+import com.assetstudio.mobile.core.classes.TextAsset
 import com.assetstudio.mobile.core.classes.Sprite
 import com.assetstudio.mobile.core.classes.Texture2D
 import com.assetstudio.mobile.core.classes.UnityObject
@@ -1557,6 +1558,27 @@ class MainViewModel : ViewModel() {
                     }
                 }
                 onDone(true, msg)
+            }
+        }
+    }
+
+    /** Non-destructive TextAsset replacement: output goes to pending Save As. */
+    fun replaceTextAsset(asset: TextAsset, text: String, onDone: (Boolean, String) -> Unit) {
+        viewModelScope.launch {
+            val (repacked, error) = withContext(Dispatchers.IO) {
+                try {
+                    AssetReplacer.replaceTextAsset(asset, text) to null
+                } catch (e: OutOfMemoryError) {
+                    null to "RAM tidak cukup untuk repack TextAsset."
+                } catch (e: Exception) {
+                    null to (e.message ?: "Format TextAsset tidak didukung")
+                }
+            }
+            if (repacked == null) {
+                onDone(false, "Gagal mengganti teks: " + error)
+            } else {
+                _pendingSave.value = PendingSave(repacked.bytes, repacked.suggestedName)
+                onDone(true, "Teks berhasil diganti di salinan. Simpan sebagai file baru.")
             }
         }
     }
