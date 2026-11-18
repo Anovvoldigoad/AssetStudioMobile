@@ -130,8 +130,11 @@ object ResourceFileRegistry {
 fun resourceReaderOfData(buffer: ByteArray, offset: Int, size: Int): ResourceReader =
     ResourceReader(
         provider = {
-            val end = minOf(offset + size, buffer.size)
-            if (size <= 0 || offset >= buffer.size) ByteArray(0) else buffer.copyOfRange(offset, end)
+            if (offset < 0 || size < 0 || offset > buffer.size ||
+                size > buffer.size - offset) {
+                throw IOException("Inline resource incomplete: offset=$offset length=$size fileSize=${buffer.size}")
+            }
+            buffer.copyOfRange(offset, offset + size)
         },
         size = size.toLong()
     )
