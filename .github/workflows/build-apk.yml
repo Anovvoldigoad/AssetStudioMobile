@@ -44,7 +44,7 @@ jobs:
       - name: Test MLBB categories
         run: |
           chmod +x gradlew
-          ./gradlew :app:testDebugUnitTest --tests "com.assetstudio.mobile.mlbb.MlbbCategoryTest" --tests "com.assetstudio.mobile.mlbb.AssetLinksTest" --no-daemon
+          ./gradlew :app:testDebugUnitTest --tests "com.assetstudio.mobile.mlbb.MlbbCategoryTest" --tests "com.assetstudio.mobile.mlbb.AssetLinksTest" --tests "com.assetstudio.mobile.mlbb.ClipTimelineTest" --no-daemon
 
       - name: Build APK
         run: |
