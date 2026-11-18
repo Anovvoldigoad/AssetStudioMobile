@@ -33,6 +33,23 @@ class DependencyFileIndexTest {
         } finally { dir.deleteRecursively() }
     }
 
+    @Test fun readsByteRangeFromVeryLargeSidecar() {
+        val dir = createTempDir(prefix = "mlbb-dep-stream-")
+        try {
+            val path = File(dir, "huge.resS")
+            java.io.RandomAccessFile(path, "rw").use { file ->
+                file.setLength(110L * 1024 * 1024)
+                file.seek(109L * 1024 * 1024)
+                file.write(byteArrayOf(8, 7, 6, 5))
+            }
+            val index = DependencyFileIndex.fromFiles(listOf(path), false)
+            assertEquals(DependencyFileIndex.State.TOO_LARGE, index.inspect("huge.resS").state)
+            assertContentEquals(byteArrayOf(8, 7, 6, 5),
+                index.readSlice("huge.resS", 109L * 1024 * 1024, 4))
+            assertNull(index.readSlice("huge.resS", 110L * 1024 * 1024 - 1, 10))
+        } finally { dir.deleteRecursively() }
+    }
+
     @Test fun oversizedResourceIsNotRead() {
         val dir = createTempDir(prefix = "mlbb-dep-limit-")
         try {
