@@ -52,6 +52,7 @@ fun DependencyStatusPanel(obj: UnityObject) {
                     "MISSING" -> "Tidak ada di folder pilihan"
                     "AMBIGUOUS" -> "Ada beberapa file bernama sama; tidak dipilih otomatis"
                     "TOO_LARGE" -> "Melebihi batas pembacaan otomatis"
+                    "STREAM_ONLY" -> "File besar tersedia; dibaca per offset tanpa memuat seluruh file"
                     else -> state
                 }
                 Text(name, style = MaterialTheme.typography.labelMedium)
