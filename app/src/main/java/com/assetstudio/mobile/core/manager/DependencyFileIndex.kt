@@ -42,6 +42,25 @@ class DependencyFileIndex private constructor(
         }
     }
 
+    /** Seek directly into a large .resS file, avoiding a whole-file heap copy. */
+    fun readSlice(path: String, offset: Long, size: Long, maxSlice: Long = 64L * 1024 * 1024): ByteArray? {
+        if (size < 0 || size > maxSlice || offset < 0) return null
+        val key = getFileName(path).lowercase(Locale.ROOT)
+        if (inspect(path, Long.MAX_VALUE).state != State.FOUND) return null
+        val file = filesByName[key]?.singleOrNull() ?: return null
+        if (offset > file.length() || size > file.length() - offset) return null
+        if (size > Int.MAX_VALUE) return null
+        return try {
+            val bytes = ByteArray(size.toInt())
+            java.io.RandomAccessFile(file, "r").use { stream ->
+                stream.seek(offset)
+                stream.readFully(bytes)
+            }
+            bytes
+        } catch (_: Exception) {
+            null
+        }
+    }
     companion object {
         const val MAX_READ_BYTES = 96L * 1024 * 1024
 
