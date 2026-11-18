@@ -1475,22 +1475,32 @@ class MainViewModel : ViewModel() {
 
     // ============================ 贴图解码预览 ============================
 
-    suspend fun decodeTexture(texture: Texture2D): Bitmap? = withContext(Dispatchers.IO) {
-        try {
-            val converter = TextureConverter(texture)
-            if (texture.m_Width * texture.m_Height > 33_554_432) { // 16M 像素上限
-                null
-            } else {
-                val pixels = converter.decodeToPixels() ?: return@withContext null
-                // Unity 纹理 row 0 = 底部（OpenGL 习惯），Bitmap row 0 = 顶部
-                // 对应 C# RotateFlip(RotateNoneFlipY)；漏掉此步贴图上下颠倒（v1.7.7 修复）
-                PixelFlip.flipVerticalInPlace(pixels, texture.m_Width, texture.m_Height)
-                Bitmap.createBitmap(pixels, texture.m_Width, texture.m_Height, Bitmap.Config.ARGB_8888)
+    /** Returns an explicit decoder error instead of a silently empty preview. */
+    suspend fun decodeTextureDetailed(texture: Texture2D): Pair<Bitmap?, String?> =
+        withContext(Dispatchers.IO) {
+            val width = texture.m_Width
+            val height = texture.m_Height
+            val pixelCount = width.toLong() * height.toLong()
+            if (pixelCount <= 0) return@withContext null to "Ukuran tekstur tidak valid."
+            if (pixelCount > 16_777_216L) {
+                return@withContext null to
+                    "Tekstur ${width}×${height} terlalu besar untuk preview aman di Android (maks. 16 MP)."
             }
-        } catch (e: Throwable) {
-            null
+            val converter = TextureConverter(texture)
+            try {
+                val pixels = converter.decodeToPixels()
+                    ?: return@withContext null to
+                        (converter.lastError ?: "Format ${texture.m_TextureFormat} tidak dapat didekode.")
+                PixelFlip.flipVerticalInPlace(pixels, width, height)
+                Bitmap.createBitmap(pixels, width, height, Bitmap.Config.ARGB_8888) to null
+            } catch (e: Throwable) {
+                null to ("Gagal decode ${texture.m_TextureFormat}: " +
+                    (e.message ?: e.javaClass.simpleName))
+            }
         }
-    }
+
+    suspend fun decodeTexture(texture: Texture2D): Bitmap? =
+        decodeTextureDetailed(texture).first
 
     /** Sprite 预览：从图集纹理中裁剪 textureRect 区域 */
     suspend fun decodeSprite(sprite: Sprite): Bitmap? = withContext(Dispatchers.IO) {
