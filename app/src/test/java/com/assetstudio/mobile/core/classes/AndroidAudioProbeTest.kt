@@ -21,6 +21,6 @@ class AndroidAudioProbeTest {
         assertNull(AndroidAudioProbe.fileExtension("FSB5data".toByteArray()))
         assertNull(AndroidAudioProbe.fileExtension("RIFF1234OGGS".toByteArray()))
         assertNull(AndroidAudioProbe.fileExtension(byteArrayOf(1, 2, 3)))
-        assertNull(AndroidAudioProbe.fileExtension(byteArrayOf(0xff.toByte(), 0xf0.toByte(), 0, 0)))
+        assertNull(AndroidAudioProbe.fileExtension(byteArrayOf(0xff.toByte(), 0xf6.toByte(), 0, 0)))
     }
 }
