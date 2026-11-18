@@ -100,6 +100,7 @@ import com.assetstudio.mobile.ui.preview.MaterialPreview
 import com.assetstudio.mobile.ui.preview.SoundPreview
 import com.assetstudio.mobile.ui.preview.AnyAssetPreview
 import com.assetstudio.mobile.ui.preview.RelatedAssetsPanel
+import com.assetstudio.mobile.ui.preview.DependencyStatusPanel
 import com.assetstudio.mobile.ui.preview.AtlasPreview
 import com.assetstudio.mobile.ui.preview.SkinnedBonePreview
 import com.assetstudio.mobile.ui.components.formatBytes
@@ -299,6 +300,7 @@ fun AssetDetailScreen(
                 }
                 if (item.obj != null) {
                     RelatedAssetsPanel(item, assets, onOpenAsset)
+                    DependencyStatusPanel(item.obj!!)
                 }
 
                 // ---------- 信息卡 ----------
