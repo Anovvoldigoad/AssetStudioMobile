@@ -271,6 +271,11 @@ class MainViewModel : ViewModel() {
         }
     }
 
+    /** External stream payloads are indexed by DependencyFileIndex, not parsed as Unity assets. */
+    private fun isExternalSidecar(file: java.io.File): Boolean =
+        file.extension.equals("resS", ignoreCase = true) ||
+            file.extension.equals("resource", ignoreCase = true)
+
     /** 应用内文件管理器选择的文件（File 直读，不经 SAF） */
     fun loadFiles(files: List<java.io.File>) {
         if (files.isEmpty()) return
@@ -296,6 +301,9 @@ class MainViewModel : ViewModel() {
                 try {
                     for (file in files) {
                         if (cancelLoadRequested) break
+                        // A sidecar is available through newManager(files)' read-only
+                        // filesystem index; do not read/copy the whole .resS into heap.
+                        if (isExternalSidecar(file)) continue
                         if (firstName == null) firstName = file.name
                         try {
                             val size = file.length()
@@ -756,6 +764,7 @@ class MainViewModel : ViewModel() {
                 progress = done.toFloat() / grandTotal,
                 current = done, total = grandTotal, cancellable = true
             )
+            if (isExternalSidecar(file)) continue
             val size = file.length()
             if (size > MAX_INPUT_BYTES) {
                 tooBig.add(file.name)
