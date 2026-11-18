@@ -14,6 +14,7 @@ import com.assetstudio.mobile.core.classes.UnityObject
 import com.assetstudio.mobile.core.crypto.EncryptedBundleDecoder
 import com.assetstudio.mobile.core.io.getFileName
 import com.assetstudio.mobile.core.manager.AssetsManager
+import com.assetstudio.mobile.core.manager.DependencyFileIndex
 import com.assetstudio.mobile.core.serialized.SerializedFile
 import com.assetstudio.mobile.core.texture.PixelFlip
 import com.assetstudio.mobile.core.texture.TextureConverter
@@ -289,7 +290,7 @@ class MainViewModel : ViewModel() {
             // 3) 单文件失败只记错误不拖垮整批。
             withContext(Dispatchers.IO) { evictSessionsForNewBatch() }
             val result = withContext(Dispatchers.IO) {
-                val m = newManager()
+                val m = newManager(files)
                 var firstName: String? = null
                 val errors = ArrayList<String>()
                 try {
@@ -855,7 +856,7 @@ class MainViewModel : ViewModel() {
                 progress = doneBefore.toFloat() / grandTotal,
                 current = doneBefore, total = grandTotal, cancellable = true
             )
-            val m = newManager()
+            val m = newManager(files)
             val outcome = withContext(Dispatchers.IO) {
                 loadBatchInternal(m, remaining, "", doneBefore, grandTotal, memCap)
             }
@@ -963,9 +964,15 @@ class MainViewModel : ViewModel() {
     // ============================ 批次查看与切换（v1.8.0） ============================
 
     /** 新建批次解析器（继承用户填写的 Unity 版本） */
-    private fun newManager(): AssetsManager = AssetsManager().also {
-        it.specifyUnityVersion = specifyUnityVersion.ifBlank { null }
-    }
+    private fun newManager(dependencyFiles: List<java.io.File> = emptyList()): AssetsManager =
+        AssetsManager().also { manager ->
+            manager.specifyUnityVersion = specifyUnityVersion.ifBlank { null }
+            if (dependencyFiles.isNotEmpty()) {
+                val index = DependencyFileIndex.fromFiles(dependencyFiles)
+                manager.externalResourceOpener = { name -> index.readUnique(name) }
+                manager.externalDependencyStatus = { name -> index.inspect(name).state.name }
+            }
+        }
 
     /** 从解析器构建批次记录（统计资产类型分布；v1.9.0 同时生成轻量索引） */
     private fun buildSession(
@@ -1161,7 +1168,7 @@ class MainViewModel : ViewModel() {
             // 回收 + 全局 STW 暂停，用户正盯着详情页等预览时表现成「卡一下」。
             // 改为仅在堆快速读数偏高时才回收（低压力路径零强制 GC）
             if (heapUsedRatioFast() > 0.5f) System.gc()
-            val m = newManager()
+            val m = newManager(s.files)
             try {
                 val bytes = src.readBytes()
                 m.loadFileDeferred(src.name, bytes)
