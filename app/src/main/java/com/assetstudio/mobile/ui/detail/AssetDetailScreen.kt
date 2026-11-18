@@ -37,6 +37,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SnackbarHost
@@ -92,6 +93,18 @@ import com.assetstudio.mobile.ui.browser.rememberStoragePermission
 import com.assetstudio.mobile.ui.components.InfoRow
 import com.assetstudio.mobile.ui.components.LoadingOverlay
 import com.assetstudio.mobile.ui.components.MeshPreview
+import com.assetstudio.mobile.ui.preview.ClipChannelsPreview
+import com.assetstudio.mobile.ui.preview.RigPreview
+import com.assetstudio.mobile.ui.preview.HeroPreview
+import com.assetstudio.mobile.ui.preview.MaterialPreview
+import com.assetstudio.mobile.ui.preview.SoundPreview
+import com.assetstudio.mobile.ui.preview.AnyAssetPreview
+import com.assetstudio.mobile.ui.preview.RelatedAssetsPanel
+import com.assetstudio.mobile.ui.preview.DependencyStatusPanel
+import com.assetstudio.mobile.ui.preview.AtlasPreview
+import com.assetstudio.mobile.ui.preview.UnityVideoPreview
+import com.assetstudio.mobile.ui.preview.AnimatorOverridePreview
+import com.assetstudio.mobile.ui.preview.SkinnedBonePreview
 import com.assetstudio.mobile.ui.components.formatBytes
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -234,10 +247,27 @@ fun AssetDetailScreen(
                 } else when (val obj = item.obj) {
                     is Texture2D -> TexturePreview(viewModel, obj)
                     is Sprite -> SpritePreview(viewModel, obj)
+                    is com.assetstudio.mobile.core.classes.SpriteAtlas -> AtlasPreview(viewModel, obj)
+                    is com.assetstudio.mobile.core.classes.VideoClip -> UnityVideoPreview(obj)
                     is Mesh -> MeshPreview(obj)
-                    is TextAsset -> TextPreview(obj)
+                    is TextAsset -> TextPreview(obj) { updated ->
+                        busy = "Sedang mengemas ulang TextAsset…"
+                        viewModel.replaceTextAsset(obj, updated) { _, result ->
+                            busy = null
+                            message = result
+                        }
+                    }
                     is MonoBehaviour -> MonoPreview(obj)
-                    is Material -> RenderDumpPreview("Informasi material") { RenderDumper.dumpMaterial(obj) }
+                    is com.assetstudio.mobile.core.classes.AnimationClip -> ClipChannelsPreview(obj)
+                    is com.assetstudio.mobile.core.classes.Animation -> RigPreview(obj)
+                    is com.assetstudio.mobile.core.classes.AnimatorController -> RigPreview(obj)
+                    is com.assetstudio.mobile.core.classes.AnimatorOverrideController -> AnimatorOverridePreview(obj)
+                    is com.assetstudio.mobile.core.classes.Animator -> RigPreview(obj)
+                    is com.assetstudio.mobile.core.classes.Avatar -> RigPreview(obj)
+                    is com.assetstudio.mobile.core.classes.Transform -> RigPreview(obj)
+                    is com.assetstudio.mobile.core.classes.GameObject -> HeroPreview(obj)
+                    is AudioClip -> SoundPreview(obj)
+                    is Material -> MaterialPreview(viewModel, obj)
                     is Shader -> RenderDumpPreview("Informasi shader") { RenderDumper.dumpShader(obj) }
                     // 渲染器组件：预览其引用的网格（几何数据在 Mesh 对象里，不在组件内）
                     is SkinnedMeshRenderer, is MeshFilter -> {
@@ -266,7 +296,15 @@ fun AssetDetailScreen(
                             }
                         }
                     }
-                    else -> GenericPreview(item)
+                    else -> AnyAssetPreview(obj)
+                }
+
+                if (item.obj is SkinnedMeshRenderer) {
+                    SkinnedBonePreview(item.obj as SkinnedMeshRenderer)
+                }
+                if (item.obj != null) {
+                    RelatedAssetsPanel(item, assets, onOpenAsset)
+                    DependencyStatusPanel(item.obj!!)
                 }
 
                 // ---------- 信息卡 ----------
@@ -353,8 +391,11 @@ fun AssetDetailScreen(
                 referencedMesh?.let { mesh ->
                     // 关联 Mesh 是否在已加载资产列表中（跨文件引用未加载时跳转无效，只展示信息）
                     val meshAssetId = remember(mesh, assets) {
-                        val id = "${mesh.assetsFile.fileName}#${mesh.m_PathID}"
-                        if (assets.any { it.id == id }) id else null
+                        assets.filter { candidate ->
+                            candidate.sessionId == item.sessionId &&
+                                candidate.pathID == mesh.m_PathID &&
+                                candidate.fileName.equals(mesh.assetsFile.fileName, ignoreCase = true)
+                        }.singleOrNull()?.id
                     }
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -753,10 +794,19 @@ private fun DetailTopBar(title: String, onBack: () -> Unit) {
 
 @Composable
 private fun TexturePreview(viewModel: MainViewModel, texture: Texture2D) {
-    val bitmap by produceState<Bitmap?>(initialValue = null, texture) {
-        value = viewModel.decodeTexture(texture)
+    val result by produceState<Pair<Bitmap?, String?>>(null to null, texture) {
+        value = viewModel.decodeTextureDetailed(texture)
     }
-    PreviewCard(bitmap, "Pratinjau tekstur")
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        PreviewCard(result.first, "Pratinjau tekstur")
+        Text("Format: ${texture.m_TextureFormat} • ${texture.m_Width} × ${texture.m_Height}",
+            style = MaterialTheme.typography.bodySmall)
+        result.second?.let { reason ->
+            Text("Alasan pratinjau gagal: $reason",
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall)
+        }
+    }
 }
 
 @Composable
@@ -906,32 +956,66 @@ private fun AdaptiveImagePreview(bitmap: Bitmap) {
 }
 
 @Composable
-private fun TextPreview(textAsset: TextAsset) {
+private fun TextPreview(textAsset: TextAsset, onReplace: (String) -> Unit) {
+    val raw = textAsset.m_Script
+    val editAllowed = remember(textAsset) {
+        raw.size <= 256 * 1024 && !raw.contains(0.toByte()) &&
+            String(raw, Charsets.UTF_8).toByteArray(Charsets.UTF_8).contentEquals(raw)
+    }
+    val content = remember(textAsset) {
+        val length = minOf(raw.size, 200_000)
+        String(raw, 0, length, Charsets.UTF_8) +
+            if (length < raw.size) "\n… (dipotong, total " + raw.size + " byte)" else ""
+    }
+    var showEditor by remember(textAsset) { mutableStateOf(false) }
+    var draft by remember(textAsset) { mutableStateOf("") }
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Isi teks", style = MaterialTheme.typography.titleSmall)
-            val content = remember(textAsset) {
-                try {
-                    val raw = textAsset.m_Script
-                    if (raw.size > 200_000) {
-                        String(raw.copyOfRange(0, 200_000), Charsets.UTF_8) + "\n… (dipotong, total ${raw.size}  byte)"
-                    } else {
-                        String(raw, Charsets.UTF_8)
-                    }
-                } catch (e: Exception) {
-                    "(Teks bukan UTF-8, total ${textAsset.m_Script.size} byte)"
-                }
-            }
-            Text(
-                content,
-                fontFamily = FontFamily.Monospace,
-                fontSize = 11.sp,
+            Text("Pratinjau TextAsset", style = MaterialTheme.typography.titleSmall)
+            Text(content, fontFamily = FontFamily.Monospace, fontSize = 11.sp,
                 style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier
-                    .height(320.dp)
-                    .verticalScroll(rememberScrollState())
-            )
+                modifier = Modifier.height(280.dp).verticalScroll(rememberScrollState()))
+            Button(onClick = {
+                draft = String(raw, Charsets.UTF_8)
+                showEditor = true
+            }, enabled = editAllowed) { Text("Edit teks dan repack") }
+            if (!editAllowed) {
+                Text("Editor hanya untuk UTF-8 valid tanpa byte NUL hingga 256 KB. " +
+                    "Aset biner atau lebih besar tetap dapat diekspor, tetapi tidak diedit " +
+                    "sebagai teks untuk mencegah kerusakan.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
+    }
+    if (showEditor) {
+        val length = draft.toByteArray(Charsets.UTF_8).size
+        AlertDialog(
+            onDismissRequest = { showEditor = false },
+            title = { Text("Edit TextAsset") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("UTF-8 • " + length + " byte • output berupa file baru",
+                        style = MaterialTheme.typography.bodySmall)
+                    OutlinedTextField(value = draft, onValueChange = { draft = it },
+                        modifier = Modifier.fillMaxWidth().height(320.dp),
+                        label = { Text("Isi teks") }, maxLines = 14)
+                    Text("Perubahan tidak ditulis langsung ke file game. " +
+                        "Periksa isi dan simpan hasil repack melalui menu Simpan.",
+                        style = MaterialTheme.typography.bodySmall)
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { showEditor = false; onReplace(draft) },
+                    enabled = length <= 2 * 1024 * 1024 &&
+                        !draft.toByteArray(Charsets.UTF_8).contentEquals(raw)
+                ) { Text("Terapkan") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEditor = false }) { Text("Batal") }
+            }
+        )
     }
 }
 

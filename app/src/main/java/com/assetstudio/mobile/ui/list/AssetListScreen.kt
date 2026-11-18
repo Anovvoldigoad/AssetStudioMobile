@@ -48,6 +48,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.assetstudio.mobile.AssetItem
 import com.assetstudio.mobile.MainViewModel
+import com.assetstudio.mobile.mlbb.MlbbCategory
 import com.assetstudio.mobile.core.ClassIDType
 import com.assetstudio.mobile.ui.browser.FilePickerDialog
 import com.assetstudio.mobile.ui.browser.FileSaveDialog
@@ -64,11 +65,16 @@ private data class TypeFilter(val typeName: String, val label: String, val count
 @Composable
 fun AssetListScreen(
     viewModel: MainViewModel,
+    category: String? = null,
     onBack: () -> Unit,
     onOpenAsset: (String) -> Unit
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val assets by viewModel.assets.collectAsState()
+    val activeCategory = MlbbCategory.fromRoute(category)
+    val categoryAssets = remember(assets, activeCategory) {
+        assets.filter { activeCategory.accepts(it.type, it.name) }
+    }
     // rememberSaveable：导航到详情页后列表页会被销毁，普通 remember 的筛选/搜索状态会丢失
     // （表现为返回后有时回到"全部"分类）。Saveable 状态由导航栈持有，返回时原样恢复，
     // LazyColumn 的滚动位置同样由其内部 rememberSaveable 自动保留。
@@ -96,8 +102,8 @@ fun AssetListScreen(
     val savedOrder = tabOrder ?: TabOrderStore.load(context).also { tabOrder = it }
 
     // 类型筛选：默认按数量降序，再按用户保存的顺序重排（保存过的在前，其余按默认序跟后）
-    val typeFilters = remember(assets, savedOrder) {
-        val byCount = assets.groupBy { it.type.name }
+    val typeFilters = remember(categoryAssets, savedOrder) {
+        val byCount = categoryAssets.groupBy { it.type.name }
             .map { (name, list) -> TypeFilter(name, prettyTypeName(name), list.size) }
             .sortedByDescending { it.count }
         if (savedOrder.isEmpty()) {
@@ -128,8 +134,8 @@ fun AssetListScreen(
         ).show()
     }
 
-    val filtered = remember(assets, search, selectedType) {
-        assets.filter { item ->
+    val filtered = remember(categoryAssets, search, selectedType) {
+        categoryAssets.filter { item ->
             (selectedType == null || item.type.name == selectedType) &&
                 (search.isEmpty() || item.name.contains(search, ignoreCase = true) ||
                     item.pathID.toString().contains(search))
@@ -186,9 +192,9 @@ fun AssetListScreen(
                 TopAppBar(
                     title = {
                         Column {
-                            Text("Daftar aset", style = MaterialTheme.typography.titleLarge)
+                            Text(activeCategory.title, style = MaterialTheme.typography.titleLarge)
                             Text(
-                                "${filtered.size} / ${assets.size}",
+                                "${filtered.size} / ${categoryAssets.size}",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -230,7 +236,7 @@ fun AssetListScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 TypeChip(
-                    text = "Semua (${assets.size})",
+                    text = "Semua (${categoryAssets.size})",
                     selected = selectedType == null,
                     onClick = { selectedType = null }
                 )

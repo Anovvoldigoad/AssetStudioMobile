@@ -1,0 +1,101 @@
+package com.assetstudio.mobile.core.manager
+
+import com.assetstudio.mobile.core.io.getFileName
+import java.io.File
+import java.util.Locale
+
+/**
+ * Builds a read-only dependency index from selected files and their immediate
+ * parent folders. Case-insensitive names match Unity external references.
+ * Ambiguous names deliberately never resolve to a random asset.
+ */
+class DependencyFileIndex private constructor(
+    private val filesByName: Map<String, List<File>>
+) {
+    enum class State { FOUND, MISSING, AMBIGUOUS, TOO_LARGE }
+    data class Result(val state: State, val matches: Int = 0)
+
+    /** Resolve only an unambiguous basename, or an exact immediate-parent suffix. */
+    private fun candidates(path: String): List<File> {
+        val key = getFileName(path).lowercase(Locale.ROOT)
+        if (key.isBlank()) return emptyList()
+        val found = filesByName[key].orEmpty().filter { it.isFile }
+        if (found.size <= 1) return found
+        val components = path.replace('\\', '/').lowercase(Locale.ROOT)
+            .split('/').filter { it.isNotBlank() }
+        if (components.size < 2) return found
+        val suffix = "/" + components.takeLast(2).joinToString("/")
+        val scoped = found.filter {
+            it.absolutePath.replace('\\', '/').lowercase(Locale.ROOT).endsWith(suffix)
+        }
+        return if (scoped.isEmpty()) found else scoped
+    }
+
+    fun inspect(path: String, maxBytes: Long = MAX_READ_BYTES): Result {
+        val files = candidates(path)
+        return when {
+            files.isEmpty() -> Result(State.MISSING)
+            files.size != 1 -> Result(State.AMBIGUOUS, files.size)
+            files[0].length() !in 1..maxBytes -> Result(State.TOO_LARGE, 1)
+            else -> Result(State.FOUND, 1)
+        }
+    }
+
+    fun readUnique(path: String, maxBytes: Long = MAX_READ_BYTES): ByteArray? {
+        if (inspect(path, maxBytes).state != State.FOUND) return null
+        val file = candidates(path).singleOrNull() ?: return null
+        // File could have changed between indexing and reading.
+        val size = file.length()
+        if (size !in 1..maxBytes) return null
+        return try {
+            val data = file.readBytes()
+            data.takeIf { it.size.toLong() <= maxBytes }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    /** Seek directly into a large .resS file, avoiding a whole-file heap copy. */
+    fun readSlice(path: String, offset: Long, size: Long, maxSlice: Long = 64L * 1024 * 1024): ByteArray? {
+        if (size < 0 || size > maxSlice || offset < 0) return null
+        if (inspect(path, Long.MAX_VALUE).state != State.FOUND) return null
+        val file = candidates(path).singleOrNull() ?: return null
+        if (offset > file.length() || size > file.length() - offset) return null
+        if (size > Int.MAX_VALUE) return null
+        return try {
+            val bytes = ByteArray(size.toInt())
+            java.io.RandomAccessFile(file, "r").use { stream ->
+                stream.seek(offset)
+                stream.readFully(bytes)
+            }
+            bytes
+        } catch (_: Exception) {
+            null
+        }
+    }
+    companion object {
+        const val MAX_READ_BYTES = 96L * 1024 * 1024
+
+        fun fromFiles(selected: List<File>, inspectSiblings: Boolean = true): DependencyFileIndex {
+            val all = LinkedHashMap<String, File>()
+            fun insert(f: File) {
+                if (!f.isFile) return
+                // Canonical paths prevent counting the selected file twice.
+                val canonical = runCatching { f.canonicalFile }.getOrDefault(f.absoluteFile)
+                all.putIfAbsent(canonical.path, canonical)
+            }
+            selected.forEach(::insert)
+            if (inspectSiblings) {
+                selected.mapNotNull { it.parentFile?.absoluteFile }.distinctBy { it.path }
+                    .take(24).forEach { dir ->
+                        // Do not perform an unbounded recursive search of Android storage.
+                        val children = dir.listFiles()?.take(2500).orEmpty()
+                        children.forEach(::insert)
+                    }
+            }
+            return DependencyFileIndex(all.values.groupBy {
+                it.name.lowercase(Locale.ROOT)
+            })
+        }
+    }
+}

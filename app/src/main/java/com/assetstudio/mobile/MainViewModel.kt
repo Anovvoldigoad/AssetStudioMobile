@@ -7,12 +7,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.assetstudio.mobile.core.ClassIDType
 import com.assetstudio.mobile.core.classes.Mesh
+import com.assetstudio.mobile.core.classes.TextAsset
 import com.assetstudio.mobile.core.classes.Sprite
 import com.assetstudio.mobile.core.classes.Texture2D
 import com.assetstudio.mobile.core.classes.UnityObject
 import com.assetstudio.mobile.core.crypto.EncryptedBundleDecoder
 import com.assetstudio.mobile.core.io.getFileName
 import com.assetstudio.mobile.core.manager.AssetsManager
+import com.assetstudio.mobile.core.manager.DependencyFileIndex
 import com.assetstudio.mobile.core.serialized.SerializedFile
 import com.assetstudio.mobile.core.texture.PixelFlip
 import com.assetstudio.mobile.core.texture.TextureConverter
@@ -269,6 +271,11 @@ class MainViewModel : ViewModel() {
         }
     }
 
+    /** External stream payloads are indexed by DependencyFileIndex, not parsed as Unity assets. */
+    private fun isExternalSidecar(file: java.io.File): Boolean =
+        file.extension.equals("resS", ignoreCase = true) ||
+            file.extension.equals("resource", ignoreCase = true)
+
     /** 应用内文件管理器选择的文件（File 直读，不经 SAF） */
     fun loadFiles(files: List<java.io.File>) {
         if (files.isEmpty()) return
@@ -288,12 +295,15 @@ class MainViewModel : ViewModel() {
             // 3) 单文件失败只记错误不拖垮整批。
             withContext(Dispatchers.IO) { evictSessionsForNewBatch() }
             val result = withContext(Dispatchers.IO) {
-                val m = newManager()
+                val m = newManager(files)
                 var firstName: String? = null
                 val errors = ArrayList<String>()
                 try {
                     for (file in files) {
                         if (cancelLoadRequested) break
+                        // A sidecar is available through newManager(files)' read-only
+                        // filesystem index; do not read/copy the whole .resS into heap.
+                        if (isExternalSidecar(file)) continue
                         if (firstName == null) firstName = file.name
                         try {
                             val size = file.length()
@@ -754,6 +764,7 @@ class MainViewModel : ViewModel() {
                 progress = done.toFloat() / grandTotal,
                 current = done, total = grandTotal, cancellable = true
             )
+            if (isExternalSidecar(file)) continue
             val size = file.length()
             if (size > MAX_INPUT_BYTES) {
                 tooBig.add(file.name)
@@ -854,7 +865,7 @@ class MainViewModel : ViewModel() {
                 progress = doneBefore.toFloat() / grandTotal,
                 current = doneBefore, total = grandTotal, cancellable = true
             )
-            val m = newManager()
+            val m = newManager(files)
             val outcome = withContext(Dispatchers.IO) {
                 loadBatchInternal(m, remaining, "", doneBefore, grandTotal, memCap)
             }
@@ -962,9 +973,23 @@ class MainViewModel : ViewModel() {
     // ============================ 批次查看与切换（v1.8.0） ============================
 
     /** 新建批次解析器（继承用户填写的 Unity 版本） */
-    private fun newManager(): AssetsManager = AssetsManager().also {
-        it.specifyUnityVersion = specifyUnityVersion.ifBlank { null }
-    }
+    private fun newManager(dependencyFiles: List<java.io.File> = emptyList()): AssetsManager =
+        AssetsManager().also { manager ->
+            manager.specifyUnityVersion = specifyUnityVersion.ifBlank { null }
+            if (dependencyFiles.isNotEmpty()) {
+                val index = DependencyFileIndex.fromFiles(dependencyFiles)
+                manager.externalResourceOpener = { name -> index.readUnique(name) }
+                manager.externalResourceSliceOpener = { name, offset, size ->
+                    index.readSlice(name, offset, size)
+                }
+                manager.externalDependencyStatus = { name ->
+                    val state = index.inspect(name).state
+                    if (state == DependencyFileIndex.State.TOO_LARGE &&
+                        index.inspect(name, Long.MAX_VALUE).state == DependencyFileIndex.State.FOUND
+                    ) "STREAM_ONLY" else state.name
+                }
+            }
+        }
 
     /** 从解析器构建批次记录（统计资产类型分布；v1.9.0 同时生成轻量索引） */
     private fun buildSession(
@@ -1160,7 +1185,7 @@ class MainViewModel : ViewModel() {
             // 回收 + 全局 STW 暂停，用户正盯着详情页等预览时表现成「卡一下」。
             // 改为仅在堆快速读数偏高时才回收（低压力路径零强制 GC）
             if (heapUsedRatioFast() > 0.5f) System.gc()
-            val m = newManager()
+            val m = newManager(s.files)
             try {
                 val bytes = src.readBytes()
                 m.loadFileDeferred(src.name, bytes)
@@ -1459,22 +1484,32 @@ class MainViewModel : ViewModel() {
 
     // ============================ 贴图解码预览 ============================
 
-    suspend fun decodeTexture(texture: Texture2D): Bitmap? = withContext(Dispatchers.IO) {
-        try {
-            val converter = TextureConverter(texture)
-            if (texture.m_Width * texture.m_Height > 33_554_432) { // 16M 像素上限
-                null
-            } else {
-                val pixels = converter.decodeToPixels() ?: return@withContext null
-                // Unity 纹理 row 0 = 底部（OpenGL 习惯），Bitmap row 0 = 顶部
-                // 对应 C# RotateFlip(RotateNoneFlipY)；漏掉此步贴图上下颠倒（v1.7.7 修复）
-                PixelFlip.flipVerticalInPlace(pixels, texture.m_Width, texture.m_Height)
-                Bitmap.createBitmap(pixels, texture.m_Width, texture.m_Height, Bitmap.Config.ARGB_8888)
+    /** Returns an explicit decoder error instead of a silently empty preview. */
+    suspend fun decodeTextureDetailed(texture: Texture2D): Pair<Bitmap?, String?> =
+        withContext(Dispatchers.IO) {
+            val width = texture.m_Width
+            val height = texture.m_Height
+            val pixelCount = width.toLong() * height.toLong()
+            if (pixelCount <= 0) return@withContext null to "Ukuran tekstur tidak valid."
+            if (pixelCount > 16_777_216L) {
+                return@withContext null to
+                    "Tekstur ${width}×${height} terlalu besar untuk preview aman di Android (maks. 16 MP)."
             }
-        } catch (e: Throwable) {
-            null
+            val converter = TextureConverter(texture)
+            try {
+                val pixels = converter.decodeToPixels()
+                    ?: return@withContext null to
+                        (converter.lastError ?: "Format ${texture.m_TextureFormat} tidak dapat didekode.")
+                PixelFlip.flipVerticalInPlace(pixels, width, height)
+                Bitmap.createBitmap(pixels, width, height, Bitmap.Config.ARGB_8888) to null
+            } catch (e: Throwable) {
+                null to ("Gagal decode ${texture.m_TextureFormat}: " +
+                    (e.message ?: e.javaClass.simpleName))
+            }
         }
-    }
+
+    suspend fun decodeTexture(texture: Texture2D): Bitmap? =
+        decodeTextureDetailed(texture).first
 
     /** Sprite 预览：从图集纹理中裁剪 textureRect 区域 */
     suspend fun decodeSprite(sprite: Sprite): Bitmap? = withContext(Dispatchers.IO) {
@@ -1557,6 +1592,27 @@ class MainViewModel : ViewModel() {
                     }
                 }
                 onDone(true, msg)
+            }
+        }
+    }
+
+    /** Non-destructive TextAsset replacement: output goes to pending Save As. */
+    fun replaceTextAsset(asset: TextAsset, text: String, onDone: (Boolean, String) -> Unit) {
+        viewModelScope.launch {
+            val (repacked, error) = withContext(Dispatchers.IO) {
+                try {
+                    AssetReplacer.replaceTextAsset(asset, text) to null
+                } catch (e: OutOfMemoryError) {
+                    null to "RAM tidak cukup untuk repack TextAsset."
+                } catch (e: Exception) {
+                    null to (e.message ?: "Format TextAsset tidak didukung")
+                }
+            }
+            if (repacked == null) {
+                onDone(false, "Gagal mengganti teks: " + error)
+            } else {
+                _pendingSave.value = PendingSave(repacked.bytes, repacked.suggestedName)
+                onDone(true, "Teks berhasil diganti di salinan. Simpan sebagai file baru.")
             }
         }
     }

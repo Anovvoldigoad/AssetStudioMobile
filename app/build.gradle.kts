@@ -13,8 +13,8 @@ android {
         applicationId = "com.assetstudio.mobile"
         minSdk = 26
         targetSdk = 34
-        versionCode = 38
-        versionName = "1.10.2"
+        versionCode = 43
+        versionName = "1.13.1-mlbb-dependency-beta"
 
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64", "x86")
@@ -38,6 +38,9 @@ android {
     }
 
     buildTypes {
+        debug {
+            applicationIdSuffix = ".mlbb"
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")

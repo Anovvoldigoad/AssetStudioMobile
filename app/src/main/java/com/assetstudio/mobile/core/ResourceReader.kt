@@ -45,6 +45,7 @@ object ResourceFileResolver {
     fun resolve(assetsFile: SerializedFile, path: String): ByteArray {
         val resourceFileName = getFileName(path)
         val candidate = lookupFromManager(assetsFile, resourceFileName)
+            ?: assetsFile.assetsManager.getResourceFileData(resourceFileName)
             ?: ResourceFileRegistry.lookup(resourceFileName)
             ?: throw FileNotFoundException("Can't find the resource file $resourceFileName")
         return candidate
@@ -52,16 +53,33 @@ object ResourceFileResolver {
 
     /** 从资源文件字节中截取 [offset, offset+size) */
     fun slice(data: ByteArray, offset: Long, size: Long): ByteArray {
-        val start = offset.toInt()
-        if (start < 0 || start > data.size) {
-            throw IOException("Resource offset out of range: offset=$offset, size=${data.size}")
+        if (offset < 0 || size < 0 || offset > data.size.toLong() ||
+            size > data.size.toLong() - offset) {
+            throw IOException(
+                "External resource incomplete: offset=$offset length=$size fileSize=${data.size}"
+            )
         }
-        val end = minOf(start + size.toInt(), data.size)
-        return if (end <= start) ByteArray(0) else data.copyOfRange(start, end)
+        val start = offset.toInt()
+        return data.copyOfRange(start, (offset + size).toInt())
     }
 
     /** 解析流数据：查找资源文件并截取对应区间 */
     fun readStreamData(assetsFile: SerializedFile, path: String, offset: Long, size: Long): ByteArray {
+        val fileName = getFileName(path)
+        // Already decoded from bundle? Reuse registered bytes.
+        val stored = lookupFromManager(assetsFile, fileName)
+        if (stored != null) return slice(stored, offset, size)
+        // Android filesystem: read only the requested range of .resS.
+        // This works even if the parent resource file is hundreds of MB.
+        val stream = assetsFile.assetsManager.externalResourceSliceOpener
+        val range = try { stream?.invoke(path, offset, size) } catch (_: IOException) { null }
+        if (range != null) {
+            if (range.size.toLong() != size) {
+                throw IOException("External resource slice incomplete: $fileName")
+            }
+            return range
+        }
+        // SAF/memory-backed bundles still use the original fallback.
         val data = resolve(assetsFile, path)
         return slice(data, offset, size)
     }
@@ -112,8 +130,11 @@ object ResourceFileRegistry {
 fun resourceReaderOfData(buffer: ByteArray, offset: Int, size: Int): ResourceReader =
     ResourceReader(
         provider = {
-            val end = minOf(offset + size, buffer.size)
-            if (size <= 0 || offset >= buffer.size) ByteArray(0) else buffer.copyOfRange(offset, end)
+            if (offset < 0 || size < 0 || offset > buffer.size ||
+                size > buffer.size - offset) {
+                throw IOException("Inline resource incomplete: offset=$offset length=$size fileSize=${buffer.size}")
+            }
+            buffer.copyOfRange(offset, offset + size)
         },
         size = size.toLong()
     )

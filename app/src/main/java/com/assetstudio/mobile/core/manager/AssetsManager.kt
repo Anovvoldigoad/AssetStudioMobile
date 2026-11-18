@@ -74,6 +74,18 @@ class AssetsManager {
      */
     var externalResourceOpener: ((String) -> ByteArray?)? = null
 
+    /** Direct range access to .resS larger than the Android heap budget. */
+    var externalResourceSliceOpener: ((String, Long, Long) -> ByteArray?)? = null
+
+    /** Cheap availability lookup; does not load potentially huge .resS bytes. */
+    var externalDependencyStatus: ((String) -> String)? = null
+
+    fun describeDependency(name: String): String {
+        if (assetsFileList.any { it.fileName.equals(name, ignoreCase = true) }) return "Asset dimuat"
+        if (resourceFileReaders.keys.any { it.equals(name, ignoreCase = true) }) return "Resource dimuat"
+        return externalDependencyStatus?.invoke(name) ?: "Tidak ditemukan di sesi ini"
+    }
+
     /** 对象解析失败的错误记录（文件名/类型/PathID/异常信息） */
     val errors: MutableList<String> = ArrayList()
 
@@ -134,6 +146,7 @@ class AssetsManager {
      * （0 = 全部构造完成）。
      */
     fun finishLoading(memoryGuard: (() -> Boolean)? = null): Int {
+        loadExternalAssetDependencies()
         val remaining = readAssets(memoryGuard)
         processAssets()
         return remaining
@@ -279,7 +292,9 @@ class AssetsManager {
     /** C# LoadAssetsFile（直接打开的 .assets，外部 .resS 走 externalResourceOpener） */
     private fun loadAssetsFile(reader: FileReader, unityVersion: String?, chain: List<SourceRef> = emptyList()) {
         if (assetsFileListHash.contains(reader.fileName.lowercase())) {
-            return // Skipping（C#: Logger.Info($"Skipping {reader.FullPath}")）
+            errors.add("Nama SerializedFile duplikat: ${reader.fileName}. " +
+                "File tidak dimuat karena referensi PathID bisa salah; gunakan folder dengan nama unik.")
+            return
         }
         try {
             val assetsFile = SerializedFile(reader.data, reader.fileName, reader.fullPath, this, unityVersion)
@@ -288,8 +303,9 @@ class AssetsManager {
             checkStrippedVersion(assetsFile)
             assetsFileList.add(assetsFile)
             assetsFileListHash.add(assetsFile.fileName.lowercase())
-            // C# 版此处会扫描磁盘寻找外部 .resS；内存模型改为回调提供
-            registerExternalResources(assetsFile)
+            // Streamed .resS sidecars stay lazy. Eager prefetch used to keep
+            // up to 96 MiB per resource in the Android heap during import.
+            // ResourceFileResolver requests the exact range on first preview.
         } catch (e: Exception) {
             errors.add("Error while reading assets file ${reader.fullPath}: $e")
         }
@@ -298,7 +314,9 @@ class AssetsManager {
     /** C# LoadAssetsFromMemory（bundle/web 内嵌 assets 条目） */
     private fun loadAssetsFromMemory(reader: FileReader, originalPath: String, unityVersion: String?, chain: List<SourceRef> = emptyList()) {
         if (assetsFileListHash.contains(reader.fileName.lowercase())) {
-            return // Skipping
+            errors.add("Nama SerializedFile duplikat dalam bundle: ${reader.fileName}. " +
+                "File diabaikan agar PPtr tidak mengarah ke objek yang salah.")
+            return
         }
         try {
             val assetsFile = SerializedFile(reader.data, reader.fileName, reader.fullPath, this, unityVersion)
@@ -471,19 +489,54 @@ class AssetsManager {
         }
     }
 
-    /** 直接加载 .assets 时，通过 externalResourceOpener 预取外部资源并缓存 */
-    private fun registerExternalResources(assetsFile: SerializedFile) {
+    /**
+     * Resolve direct serialized-file references from the chosen Android directory.
+     * Bounded to avoid bringing an entire MLBB installation into the Java heap.
+     * Missing, ambiguous and oversized dependencies are recorded rather than guessed.
+     */
+    fun loadExternalAssetDependencies(maxFiles: Int = 12, maxTotalBytes: Long = 96L * 1024 * 1024) {
         val opener = externalResourceOpener ?: return
-        for (sharedFile in assetsFile.m_Externals) {
-            val sharedFileName = sharedFile.fileName
-            if (sharedFileName.isEmpty()) continue
-            if (getResourceFileData(sharedFileName) != null) continue // 已在内存
-            val data = try {
-                opener(sharedFileName)
-            } catch (e: Exception) {
-                null
-            } ?: continue
-            resourceFileReaders[sharedFileName] = data
+        if (maxFiles <= 0 || maxTotalBytes <= 0L) return
+        val attempted = HashSet<String>()
+        var count = 0
+        var loadedBytes = 0L
+        var rounds = 0
+        while (rounds < 2 && count < maxFiles) {
+            rounds++
+            val unresolved = assetsFileList.flatMap { it.m_Externals }
+                .map { it.fileName }.filter { it.isNotBlank() }
+                .distinctBy { it.lowercase(java.util.Locale.ROOT) }
+                .filter { !assetsFileList.any { loaded -> loaded.fileName.equals(it, ignoreCase = true) } }
+            var progressed = false
+            for (name in unresolved) {
+                if (count >= maxFiles || loadedBytes >= maxTotalBytes) break
+                if (!attempted.add(name.lowercase(java.util.Locale.ROOT))) continue
+                val state = externalDependencyStatus?.invoke(name)
+                if (state == "AMBIGUOUS") {
+                    errors.add("Dependensi ambigu: $name — pilih folder yang lebih spesifik")
+                    continue
+                }
+                if (state == "TOO_LARGE") {
+                    errors.add("Dependensi terlalu besar untuk dimuat otomatis: $name")
+                    continue
+                }
+                val bytes = try { opener(name) } catch (_: Exception) { null } ?: continue
+                if (bytes.size.toLong() > maxTotalBytes - loadedBytes) {
+                    errors.add("Dependensi melewati batas memori sesi: $name")
+                    continue
+                }
+                val kind = try { FileTypeDetector.detect(name, bytes) }
+                    catch (_: Exception) { FileType.ResourceFile }
+                if (kind != FileType.AssetsFile) continue
+                val before = assetsFileList.size
+                loadFileDeferred(name, bytes)
+                if (assetsFileList.size > before) {
+                    count++
+                    loadedBytes += bytes.size
+                    progressed = true
+                }
+            }
+            if (!progressed) break
         }
     }
 
@@ -608,7 +661,15 @@ class AssetsManager {
             if (assetsFile !in readObjectFiles) continue
             val hasMono = assetsFile.objects.any { it is MonoBehaviour }
             if (hasMono) continue
+            // Unsupported classes (ParticleSystem, custom assets, etc.) have no
+            // typed parser. Their TypeTree is the ONLY useful inspector, so
+            // preserve just those types instead of stripping every tree.
+            val unknownTypes = assetsFile.objects
+                .filter { it.javaClass == UnityObject::class.java }
+                .mapNotNull { it.serializedType }
+                .toSet()
             for (t in assetsFile.m_Types) {
+                if (t in unknownTypes) continue
                 val tree = t.m_Type ?: continue
                 stripped += tree.m_Nodes.size
                 tree.m_Nodes = ArrayList()
@@ -658,7 +719,8 @@ class AssetsManager {
 
     /** C# FindAssetsFile（忽略大小写匹配文件名） */
     fun findAssetsFile(name: String): SerializedFile? {
-        return assetsFileList.firstOrNull { it.fileName.equals(name, ignoreCase = true) }
+        // Never bind a PPtr to an arbitrary first match when names collide.
+        return assetsFileList.filter { it.fileName.equals(name, ignoreCase = true) }.singleOrNull()
     }
 
     /** C# Clear */
