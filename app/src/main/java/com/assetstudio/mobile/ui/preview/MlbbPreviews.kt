@@ -255,3 +255,88 @@ fun AnyAssetPreview(obj:UnityObject){
         }
     }
 }
+
+
+/**
+ * Real SpriteAtlas preview. Uses the referenced Texture2D or actual packed
+ * Sprite crop, not an invented preview image.
+ */
+@Composable
+fun AtlasPreview(vm: MainViewModel, atlas: SpriteAtlas) {
+    var fullAtlas by remember(atlas) { mutableStateOf(true) }
+    var selected by remember(atlas) { mutableIntStateOf(0) }
+    val atlasTexture = remember(atlas) {
+        atlas.m_RenderDataMap.values.firstNotNullOfOrNull { entry ->
+            runCatching { entry.texture.tryGet<Texture2D>() }.getOrNull()
+        }
+    }
+    val chosenSprite = remember(atlas, selected) {
+        runCatching { atlas.m_PackedSprites.getOrNull(selected)?.tryGet<Sprite>() }.getOrNull()
+    }
+    val bitmap by produceState<android.graphics.Bitmap?>(null, atlasTexture, chosenSprite, fullAtlas) {
+        value = if (fullAtlas) {
+            atlasTexture?.let { runCatching { vm.decodeTexture(it) }.getOrNull() }
+        } else {
+            chosenSprite?.let { runCatching { vm.decodeSprite(it) }.getOrNull() }
+        }
+    }
+    Panel("Pratinjau SpriteAtlas") {
+        Line("Sprite: " + atlas.m_PackedSprites.size + " • peta render: " +
+            atlas.m_RenderDataMap.size + " • variant: " + atlas.m_IsVariant)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedButton(onClick = { fullAtlas = true }, enabled = !fullAtlas) {
+                Text("Atlas penuh")
+            }
+            OutlinedButton(onClick = { fullAtlas = false },
+                enabled = fullAtlas && atlas.m_PackedSprites.isNotEmpty()) {
+                Text("Per sprite")
+            }
+        }
+        if (!fullAtlas && atlas.m_PackedSprites.isNotEmpty()) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = { selected = max(0, selected - 1) },
+                    enabled = selected > 0) { Text("Sebelum") }
+                Line((selected + 1).toString() + " / " + atlas.m_PackedSprites.size)
+                OutlinedButton(onClick = {
+                    selected = min(atlas.m_PackedSprites.lastIndex, selected + 1)
+                }, enabled = selected < atlas.m_PackedSprites.lastIndex) { Text("Berikut") }
+            }
+            Line(chosenSprite?.displayName ?: "Sprite terkait belum dimuat.")
+        }
+        bitmap?.let { result ->
+            Image(
+                bitmap = result.asImageBitmap(),
+                contentDescription = "Pratinjau SpriteAtlas asli",
+                modifier = Modifier.fillMaxWidth().height(320.dp),
+                contentScale = ContentScale.Fit
+            )
+            Line(result.width.toString() + " × " + result.height + " px")
+        } ?: Line("Data gambar tidak tersedia. Muat paket dependensi " +
+            "atau gunakan Sprite/Texture2D langsung.")
+    }
+}
+
+/** Bone list is derived from actual SkinnedMeshRenderer PPtr references. */
+@Composable
+fun SkinnedBonePreview(renderer: SkinnedMeshRenderer) {
+    Panel("Pratinjau bone & skin") {
+        Line(renderer.m_Bones.size.toString() + " bone • " +
+            renderer.m_Materials.size + " slot material • " +
+            (renderer.m_BlendShapeWeights?.size ?: 0) + " bobot blend shape")
+        if (renderer.m_Bones.isEmpty()) {
+            Line("Daftar bone tidak tersedia dalam SkinnedMeshRenderer ini.")
+        } else {
+            Column(Modifier.height(240.dp).verticalScroll(rememberScrollState())) {
+                renderer.m_Bones.take(96).forEachIndexed { index, ptr ->
+                    val bone = remember(renderer, index) {
+                        runCatching { ptr.tryGet<Transform>() }.getOrNull()
+                    }
+                    Line((index + 1).toString() + ". " +
+                        (bone?.m_GameObject?.tryGet<GameObject>()?.displayName
+                            ?: "Bone #" + ptr.m_PathID + " (belum dimuat)"))
+                }
+            }
+        }
+        Line("Daftar bone asli. Deformasi skin saat animasi belum disimulasikan.")
+    }
+}
