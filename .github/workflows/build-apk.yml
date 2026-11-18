@@ -44,7 +44,7 @@ jobs:
       - name: Test MLBB categories
         run: |
           chmod +x gradlew
-          ./gradlew :app:testDebugUnitTest --tests "com.assetstudio.mobile.mlbb.MlbbCategoryTest" --tests "com.assetstudio.mobile.mlbb.AssetLinksTest" --tests "com.assetstudio.mobile.mlbb.ClipTimelineTest" --tests "com.assetstudio.mobile.mlbb.TextAssetRewriteTest" --tests "com.assetstudio.mobile.core.manager.DependencyFileIndexTest" --tests "com.assetstudio.mobile.core.ResourceSliceTest" --no-daemon
+          ./gradlew :app:testDebugUnitTest --tests "com.assetstudio.mobile.mlbb.MlbbCategoryTest" --tests "com.assetstudio.mobile.mlbb.AssetLinksTest" --tests "com.assetstudio.mobile.mlbb.ClipTimelineTest" --tests "com.assetstudio.mobile.mlbb.TextAssetRewriteTest" --tests "com.assetstudio.mobile.core.manager.DependencyFileIndexTest" --tests "com.assetstudio.mobile.core.ResourceSliceTest" --tests "com.assetstudio.mobile.core.texture.Bc2DecoderTest" --tests "com.assetstudio.mobile.core.classes.AndroidAudioProbeTest" --tests "com.assetstudio.mobile.core.classes.VideoContainerProbeTest" --no-daemon
 
       - name: Build APK
         run: |
