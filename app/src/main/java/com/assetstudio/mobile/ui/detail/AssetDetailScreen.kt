@@ -103,6 +103,7 @@ import com.assetstudio.mobile.ui.preview.RelatedAssetsPanel
 import com.assetstudio.mobile.ui.preview.DependencyStatusPanel
 import com.assetstudio.mobile.ui.preview.AtlasPreview
 import com.assetstudio.mobile.ui.preview.UnityVideoPreview
+import com.assetstudio.mobile.ui.preview.AnimatorOverridePreview
 import com.assetstudio.mobile.ui.preview.SkinnedBonePreview
 import com.assetstudio.mobile.ui.components.formatBytes
 import kotlinx.coroutines.Dispatchers
@@ -260,6 +261,7 @@ fun AssetDetailScreen(
                     is com.assetstudio.mobile.core.classes.AnimationClip -> ClipChannelsPreview(obj)
                     is com.assetstudio.mobile.core.classes.Animation -> RigPreview(obj)
                     is com.assetstudio.mobile.core.classes.AnimatorController -> RigPreview(obj)
+                    is com.assetstudio.mobile.core.classes.AnimatorOverrideController -> AnimatorOverridePreview(obj)
                     is com.assetstudio.mobile.core.classes.Animator -> RigPreview(obj)
                     is com.assetstudio.mobile.core.classes.Avatar -> RigPreview(obj)
                     is com.assetstudio.mobile.core.classes.Transform -> RigPreview(obj)
