@@ -56,6 +56,20 @@ object AssetReplacer {
      * @param objText OBJ 文件全文
      */
     fun replaceMesh(mesh: Mesh, objText: String): RepackResult {
+        // The current OBJ writer clears bind poses, skin and blend shapes.
+        // Never silently destroy a character rig just to produce a valid bundle.
+        val hasRig = mesh.m_BindPose?.isNotEmpty() == true ||
+            mesh.m_BoneNameHashes?.isNotEmpty() == true ||
+            mesh.m_Skin?.isNotEmpty() == true ||
+            mesh.m_Shapes?.channels?.isNotEmpty() == true ||
+            mesh.m_Shapes?.shapes?.isNotEmpty() == true
+        if (hasRig) {
+            throw ReplaceException(
+                "Mesh ini memiliki skeleton/skin/blend shape. Editor OBJ belum " +
+                    "mempertahankan bind poses dan bobot tulang; penggantian dibatalkan " +
+                    "agar rig dan animasi MLBB tidak rusak."
+            )
+        }
         // ---------- 1. 解析 OBJ ----------
         val objData = ObjImporter.parse(objText)
 
