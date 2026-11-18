@@ -301,8 +301,9 @@ class AssetsManager {
             checkStrippedVersion(assetsFile)
             assetsFileList.add(assetsFile)
             assetsFileListHash.add(assetsFile.fileName.lowercase())
-            // C# 版此处会扫描磁盘寻找外部 .resS；内存模型改为回调提供
-            registerExternalResources(assetsFile)
+            // Streamed .resS sidecars stay lazy. Eager prefetch used to keep
+            // up to 96 MiB per resource in the Android heap during import.
+            // ResourceFileResolver requests the exact range on first preview.
         } catch (e: Exception) {
             errors.add("Error while reading assets file ${reader.fullPath}: $e")
         }
@@ -532,24 +533,6 @@ class AssetsManager {
                 }
             }
             if (!progressed) break
-        }
-    }
-
-    /** 直接加载 .assets 时，通过 externalResourceOpener 预取外部资源并缓存 */
-    private fun registerExternalResources(assetsFile: SerializedFile) {
-        val opener = externalResourceOpener ?: return
-        for (sharedFile in assetsFile.m_Externals) {
-            val sharedFileName = sharedFile.fileName
-            if (sharedFileName.isEmpty()) continue
-            val lower = sharedFileName.lowercase(java.util.Locale.ROOT)
-            if (!lower.endsWith(".ress") && !lower.endsWith(".resource")) continue
-            if (getResourceFileData(sharedFileName) != null) continue // 已在内存
-            val data = try {
-                opener(sharedFileName)
-            } catch (e: Exception) {
-                null
-            } ?: continue
-            resourceFileReaders[sharedFileName] = data
         }
     }
 
