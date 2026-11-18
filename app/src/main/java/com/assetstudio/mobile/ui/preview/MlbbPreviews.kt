@@ -154,16 +154,37 @@ fun HeroPreview(go: GameObject){
 @Composable
 fun MaterialPreview(vm:MainViewModel,m:Material){
     val props=m.m_SavedProperties
-    val tex=remember(m){props.m_TexEnvs.firstNotNullOfOrNull{it.second.m_Texture.tryGet<Texture2D>()}}
-    val bitmap by produceState<android.graphics.Bitmap?>(null,tex){
-        if(tex!=null)value=vm.decodeTexture(tex)
+    var textureSlot by remember(m) { mutableIntStateOf(0) }
+    val tex = remember(m, textureSlot) {
+        runCatching {
+            props.m_TexEnvs.getOrNull(textureSlot)?.second?.m_Texture?.tryGet<Texture2D>()
+        }.getOrNull()
+    }
+    val bitmap by produceState<android.graphics.Bitmap?>(null, tex) {
+        value = tex?.let { runCatching { vm.decodeTexture(it) }.getOrNull() }
     }
     Panel("Pratinjau material"){
         Line("Shader: "+(m.m_Shader.tryGetAny()?.displayName?:"belum dimuat"))
         Line("${props.m_TexEnvs.size} slot tekstur, ${props.m_Colors.size} warna")
+        if (props.m_TexEnvs.isNotEmpty()) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = { textureSlot = max(0, textureSlot - 1) },
+                    enabled = textureSlot > 0) { Text("Sebelum") }
+                Line((textureSlot + 1).toString() + " / " + props.m_TexEnvs.size)
+                OutlinedButton(onClick = {
+                    textureSlot = min(props.m_TexEnvs.lastIndex, textureSlot + 1)
+                }, enabled = textureSlot < props.m_TexEnvs.lastIndex) { Text("Berikut") }
+            }
+            Line("Slot: " + props.m_TexEnvs[textureSlot].first +
+                " • " + (tex?.displayName ?: "referensi tekstur belum tersedia"))
+        }
         bitmap?.let{
             Image(it.asImageBitmap(),contentDescription="Tekstur material",
                 modifier=Modifier.fillMaxWidth().height(180.dp),contentScale=ContentScale.Fit)
+        }
+        if (bitmap == null && props.m_TexEnvs.isNotEmpty()) {
+            Line("Tekstur slot ini tidak tersedia / tidak bisa didekode. " +
+                "Coba slot lain atau muat bundle dependensi.")
         }
         props.m_Colors.take(20).forEach{(name,c)->
             Row(horizontalArrangement=Arrangement.spacedBy(9.dp)){
