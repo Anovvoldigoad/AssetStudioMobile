@@ -13,8 +13,8 @@ android {
         applicationId = "com.assetstudio.mobile"
         minSdk = 26
         targetSdk = 34
-        versionCode = 40
-        versionName = "1.12.0-mlbb-preview-editor"
+        versionCode = 41
+        versionName = "1.12.1-mlbb-dependency-beta"
 
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64", "x86")
