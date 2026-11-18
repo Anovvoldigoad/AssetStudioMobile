@@ -204,20 +204,28 @@ private data class AudioFile(val file:File?=null,val message:String="")
 @Composable
 fun SoundPreview(clip:AudioClip){
     val context=LocalContext.current
-    val n=remember(clip){runCatching{clip.listSamples().size}.getOrDefault(0)}
+    val n by produceState(0, clip) {
+        value = withContext(Dispatchers.IO) {
+            runCatching { clip.listSamples().size }.getOrDefault(0)
+        }
+    }
     var sample by remember(clip){mutableStateOf(0)}
     val audio by produceState(AudioFile(message="Membaca audio…"),clip,sample){
         value=withContext(Dispatchers.IO){
             try{
                 if(clip.m_Size>32L*1024*1024)AudioFile(message="Audio terlalu besar untuk preview (>32 MB)")
                 else{
-                    val data=clip.toWav(sample)?:clip.getAudioData().takeIf{
-                        it.size>=12&&String(it,0,4,Charsets.US_ASCII)=="RIFF"&&
-                            String(it,8,4,Charsets.US_ASCII)=="WAVE"
-                    }
-                    if(data==null)AudioFile(message="Codec belum dapat didekode sebagai WAV.")
-                    else File.createTempFile("mlbb_audio_",".wav",context.cacheDir).let{
-                        it.writeBytes(data);AudioFile(file=it)
+                    val wav = clip.toWav(sample)
+                    val bytes = wav ?: clip.getAudioData()
+                    val ext = if (wav != null) "wav" else AndroidAudioProbe.fileExtension(bytes)
+                    if (ext == null) {
+                        AudioFile(message="Codec/format tidak didukung untuk pemutaran langsung. " +
+                            "FSB5 non-PCM tetap memerlukan decoder tersendiri.")
+                    } else {
+                        File.createTempFile("mlbb_audio_", "." + ext, context.cacheDir).let {
+                            it.writeBytes(bytes)
+                            AudioFile(file=it)
+                        }
                     }
                 }
             }catch(e:Exception){AudioFile(message="Gagal memuat audio: "+e.message)}
