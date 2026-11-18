@@ -29,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.assetstudio.mobile.MainViewModel
+import com.assetstudio.mobile.core.classes.UnityObject
 
 /** Native Compose UI: tanpa Python, Termux, atau localhost. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -43,6 +44,14 @@ fun MlbbDashboard(
         MlbbCategory.values().associateWith { category ->
             assets.count { category.accepts(it.type, it.name) }
         }
+    }
+    // Do not confuse lazy/unloaded assets with unsupported serialized classes.
+    val lazyCount = remember(assets) { assets.count { it.isLazy } }
+    val genericByType = remember(assets) {
+        assets.asSequence()
+            .filter { it.obj?.javaClass == UnityObject::class.java }
+            .groupingBy { it.type.name }.eachCount().entries
+            .sortedByDescending { it.value }.take(12)
     }
     Scaffold(
         topBar = {
@@ -87,6 +96,32 @@ fun MlbbDashboard(
                         enabled = assets.isNotEmpty(),
                         modifier = Modifier.fillMaxWidth()
                     ) { Text("Buka semua aset") }
+                }
+            }
+            if (assets.isNotEmpty()) {
+                Card {
+                    Column(Modifier.fillMaxWidth().padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                        Text("Audit dukungan otomatis", style = MaterialTheme.typography.titleLarge)
+                        Text("Aset belum dimuat dari penyimpanan: $lazyCount. " +
+                            "Aset ini bukan otomatis berarti formatnya tidak didukung.",
+                            style = MaterialTheme.typography.bodySmall)
+                        Text("Tipe aset yang masih memakai parser umum:",
+                            style = MaterialTheme.typography.titleSmall)
+                        if (genericByType.isEmpty()) {
+                            Text("Tidak terdeteksi pada aset yang sedang dimuat.",
+                                style = MaterialTheme.typography.bodySmall)
+                        } else {
+                            genericByType.forEach { row ->
+                                Text(row.key + ": " + row.value + " objek",
+                                    style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+                        Text("Parser umum hanya menyediakan data mentah/TypeTree jika tersedia. " +
+                            "Bukan bukti VFX, skill, atau animasi dapat dimainkan.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
             }
             Text("Editor berdasarkan kategori", style = MaterialTheme.typography.titleLarge)
