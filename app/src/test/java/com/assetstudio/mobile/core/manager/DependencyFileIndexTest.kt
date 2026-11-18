@@ -20,6 +20,23 @@ class DependencyFileIndexTest {
         } finally { dir.deleteRecursively() }
     }
 
+    @Test fun exactParentSuffixDisambiguatesRepeatedResourceNames() {
+        val root = createTempDir(prefix = "mlbb-scoped-sidecar-")
+        try {
+            val effects = File(root, "effects").apply { mkdirs() }
+            val heroes = File(root, "heroes").apply { mkdirs() }
+            val a = File(effects, "data.resS").apply { writeBytes(byteArrayOf(9, 8, 7, 6)) }
+            val b = File(heroes, "DATA.RESS").apply { writeBytes(byteArrayOf(1, 2, 3, 4)) }
+            val index = DependencyFileIndex.fromFiles(listOf(a, b), false)
+            assertEquals(DependencyFileIndex.State.AMBIGUOUS, index.inspect("data.resS").state)
+            assertEquals(DependencyFileIndex.State.FOUND,
+                index.inspect("effects/data.resS").state)
+            assertContentEquals(byteArrayOf(9, 8, 7, 6), index.readUnique("effects/data.resS"))
+            assertContentEquals(byteArrayOf(2, 3), index.readSlice("heroes/data.resS", 1, 2))
+            assertNull(index.readUnique("other/data.resS"))
+        } finally { root.deleteRecursively() }
+    }
+
     @Test fun duplicateBasenamesAreRejected() {
         val dir = createTempDir(prefix = "mlbb-dep-collision-")
         try {
