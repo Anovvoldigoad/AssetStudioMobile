@@ -15,10 +15,24 @@ class DependencyFileIndex private constructor(
     enum class State { FOUND, MISSING, AMBIGUOUS, TOO_LARGE }
     data class Result(val state: State, val matches: Int = 0)
 
-    fun inspect(path: String, maxBytes: Long = MAX_READ_BYTES): Result {
+    /** Resolve only an unambiguous basename, or an exact immediate-parent suffix. */
+    private fun candidates(path: String): List<File> {
         val key = getFileName(path).lowercase(Locale.ROOT)
-        if (key.isEmpty()) return Result(State.MISSING)
-        val files = filesByName[key].orEmpty().filter { it.isFile }
+        if (key.isBlank()) return emptyList()
+        val found = filesByName[key].orEmpty().filter { it.isFile }
+        if (found.size <= 1) return found
+        val components = path.replace('\\', '/').lowercase(Locale.ROOT)
+            .split('/').filter { it.isNotBlank() }
+        if (components.size < 2) return found
+        val suffix = "/" + components.takeLast(2).joinToString("/")
+        val scoped = found.filter {
+            it.absolutePath.replace('\\', '/').lowercase(Locale.ROOT).endsWith(suffix)
+        }
+        return if (scoped.isEmpty()) found else scoped
+    }
+
+    fun inspect(path: String, maxBytes: Long = MAX_READ_BYTES): Result {
+        val files = candidates(path)
         return when {
             files.isEmpty() -> Result(State.MISSING)
             files.size != 1 -> Result(State.AMBIGUOUS, files.size)
@@ -29,8 +43,7 @@ class DependencyFileIndex private constructor(
 
     fun readUnique(path: String, maxBytes: Long = MAX_READ_BYTES): ByteArray? {
         if (inspect(path, maxBytes).state != State.FOUND) return null
-        val key = getFileName(path).lowercase(Locale.ROOT)
-        val file = filesByName[key]?.singleOrNull() ?: return null
+        val file = candidates(path).singleOrNull() ?: return null
         // File could have changed between indexing and reading.
         val size = file.length()
         if (size !in 1..maxBytes) return null
@@ -45,9 +58,8 @@ class DependencyFileIndex private constructor(
     /** Seek directly into a large .resS file, avoiding a whole-file heap copy. */
     fun readSlice(path: String, offset: Long, size: Long, maxSlice: Long = 64L * 1024 * 1024): ByteArray? {
         if (size < 0 || size > maxSlice || offset < 0) return null
-        val key = getFileName(path).lowercase(Locale.ROOT)
         if (inspect(path, Long.MAX_VALUE).state != State.FOUND) return null
-        val file = filesByName[key]?.singleOrNull() ?: return null
+        val file = candidates(path).singleOrNull() ?: return null
         if (offset > file.length() || size > file.length() - offset) return null
         if (size > Int.MAX_VALUE) return null
         return try {
