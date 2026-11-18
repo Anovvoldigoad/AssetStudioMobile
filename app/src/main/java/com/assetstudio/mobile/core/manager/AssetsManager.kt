@@ -292,7 +292,9 @@ class AssetsManager {
     /** C# LoadAssetsFile（直接打开的 .assets，外部 .resS 走 externalResourceOpener） */
     private fun loadAssetsFile(reader: FileReader, unityVersion: String?, chain: List<SourceRef> = emptyList()) {
         if (assetsFileListHash.contains(reader.fileName.lowercase())) {
-            return // Skipping（C#: Logger.Info($"Skipping {reader.FullPath}")）
+            errors.add("Nama SerializedFile duplikat: ${reader.fileName}. " +
+                "File tidak dimuat karena referensi PathID bisa salah; gunakan folder dengan nama unik.")
+            return
         }
         try {
             val assetsFile = SerializedFile(reader.data, reader.fileName, reader.fullPath, this, unityVersion)
@@ -312,7 +314,9 @@ class AssetsManager {
     /** C# LoadAssetsFromMemory（bundle/web 内嵌 assets 条目） */
     private fun loadAssetsFromMemory(reader: FileReader, originalPath: String, unityVersion: String?, chain: List<SourceRef> = emptyList()) {
         if (assetsFileListHash.contains(reader.fileName.lowercase())) {
-            return // Skipping
+            errors.add("Nama SerializedFile duplikat dalam bundle: ${reader.fileName}. " +
+                "File diabaikan agar PPtr tidak mengarah ke objek yang salah.")
+            return
         }
         try {
             val assetsFile = SerializedFile(reader.data, reader.fileName, reader.fullPath, this, unityVersion)
