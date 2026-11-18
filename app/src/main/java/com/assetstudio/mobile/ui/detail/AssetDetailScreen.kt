@@ -102,6 +102,7 @@ import com.assetstudio.mobile.ui.preview.AnyAssetPreview
 import com.assetstudio.mobile.ui.preview.RelatedAssetsPanel
 import com.assetstudio.mobile.ui.preview.DependencyStatusPanel
 import com.assetstudio.mobile.ui.preview.AtlasPreview
+import com.assetstudio.mobile.ui.preview.UnityVideoPreview
 import com.assetstudio.mobile.ui.preview.SkinnedBonePreview
 import com.assetstudio.mobile.ui.components.formatBytes
 import kotlinx.coroutines.Dispatchers
@@ -246,6 +247,7 @@ fun AssetDetailScreen(
                     is Texture2D -> TexturePreview(viewModel, obj)
                     is Sprite -> SpritePreview(viewModel, obj)
                     is com.assetstudio.mobile.core.classes.SpriteAtlas -> AtlasPreview(viewModel, obj)
+                    is com.assetstudio.mobile.core.classes.VideoClip -> UnityVideoPreview(obj)
                     is Mesh -> MeshPreview(obj)
                     is TextAsset -> TextPreview(obj) { updated ->
                         busy = "Sedang mengemas ulang TextAsset…"
