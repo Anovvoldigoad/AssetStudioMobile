@@ -98,6 +98,7 @@ import com.assetstudio.mobile.ui.preview.HeroPreview
 import com.assetstudio.mobile.ui.preview.MaterialPreview
 import com.assetstudio.mobile.ui.preview.SoundPreview
 import com.assetstudio.mobile.ui.preview.AnyAssetPreview
+import com.assetstudio.mobile.ui.preview.RelatedAssetsPanel
 import com.assetstudio.mobile.ui.components.formatBytes
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -283,6 +284,10 @@ fun AssetDetailScreen(
                     else -> AnyAssetPreview(obj)
                 }
 
+                if (item.obj != null) {
+                    RelatedAssetsPanel(item, assets, onOpenAsset)
+                }
+
                 // ---------- 信息卡 ----------
                 // SelectionContainer：信息卡内所有文本支持长按自由选择复制
                 //（长按出现系统选择手柄，可跨行拖动选择任意范围文字，点"复制"即可）
@@ -367,8 +372,11 @@ fun AssetDetailScreen(
                 referencedMesh?.let { mesh ->
                     // 关联 Mesh 是否在已加载资产列表中（跨文件引用未加载时跳转无效，只展示信息）
                     val meshAssetId = remember(mesh, assets) {
-                        val id = "${mesh.assetsFile.fileName}#${mesh.m_PathID}"
-                        if (assets.any { it.id == id }) id else null
+                        assets.filter { candidate ->
+                            candidate.sessionId == item.sessionId &&
+                                candidate.pathID == mesh.m_PathID &&
+                                candidate.fileName.equals(mesh.assetsFile.fileName, ignoreCase = true)
+                        }.singleOrNull()?.id
                     }
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
