@@ -18,6 +18,7 @@ enum class MlbbCategory(
     MESH("Mesh 3D", "Geometri dan renderer", "🧊"),
     TEXTURE("Texture", "Gambar dan sprite", "🎨"),
     AUDIO("Audio & SFX", "Klip suara dan sumber", "🎵"),
+    VIDEO("Video", "VideoClip dan cutscene tersimpan", "🎬"),
     RIG("Rig & Bone", "Avatar, transform, skin", "🦴"),
     MATERIAL("Material", "Material dan shader", "💎");
 
@@ -64,6 +65,7 @@ enum class MlbbCategory(
             MESH -> model
             TEXTURE -> image || type == ClassIDType.Texture2DArray
             AUDIO -> type in setOf(ClassIDType.AudioClip, ClassIDType.AudioSource)
+            VIDEO -> type in setOf(ClassIDType.VideoClip, ClassIDType.MovieTexture)
             RIG -> type in setOf(
                 ClassIDType.Avatar, ClassIDType.Transform, ClassIDType.SkinnedMeshRenderer
             )
