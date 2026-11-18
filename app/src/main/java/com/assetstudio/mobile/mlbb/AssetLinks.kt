@@ -6,6 +6,7 @@ import com.assetstudio.mobile.core.classes.Sprite
 import com.assetstudio.mobile.core.classes.Animation
 import com.assetstudio.mobile.core.classes.Animator
 import com.assetstudio.mobile.core.classes.AnimatorController
+import com.assetstudio.mobile.core.classes.AnimatorOverrideController
 import com.assetstudio.mobile.core.classes.Component
 import com.assetstudio.mobile.core.classes.GameObject
 import com.assetstudio.mobile.core.classes.Material
@@ -88,6 +89,13 @@ fun assetReferences(obj: UnityObject, maxItems: Int = 120): List<AssetReference>
             add("Animator Controller", obj.m_Controller)
             add("Avatar", obj.m_Avatar)
             add("GameObject", obj.m_GameObject)
+        }
+        is AnimatorOverrideController -> {
+            add("Controller dasar", obj.m_Controller)
+            obj.m_Clips.take(59).forEachIndexed { index, entry ->
+                add("Animasi asli " + (index + 1), entry.m_OriginalClip)
+                add("Animasi pengganti " + (index + 1), entry.m_OverrideClip)
+            }
         }
         is AnimatorController -> obj.m_AnimationClips.take(100).forEachIndexed { index, ptr ->
             add("Clip " + (index + 1), ptr)
