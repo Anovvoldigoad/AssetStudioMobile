@@ -1,24 +1,22 @@
 pluginManagement {
     repositories {
-        // 阿里云国内镜像(优先)
-        maven("https://maven.aliyun.com/repository/gradle-plugin")
-        maven("https://maven.aliyun.com/repository/google")
-        maven("https://maven.aliyun.com/repository/public")
-        // 官方源兜底(镜像缺失时仍可构建)
+        // CI and Android builds: prefer canonical artifacts to avoid stale/broken mirror POMs.
         google()
         mavenCentral()
         gradlePluginPortal()
+        // Fallback mirrors for networks where official endpoints are inaccessible.
+        maven("https://maven.aliyun.com/repository/gradle-plugin")
+        maven("https://maven.aliyun.com/repository/google")
+        maven("https://maven.aliyun.com/repository/public")
     }
 }
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
-        // 阿里云国内镜像(优先)
-        maven("https://maven.aliyun.com/repository/google")
-        maven("https://maven.aliyun.com/repository/public")
-        // 官方源兜底(镜像缺失时仍可构建)
         google()
         mavenCentral()
+        maven("https://maven.aliyun.com/repository/google")
+        maven("https://maven.aliyun.com/repository/public")
     }
 }
 rootProject.name = "AssetStudioMobile"
