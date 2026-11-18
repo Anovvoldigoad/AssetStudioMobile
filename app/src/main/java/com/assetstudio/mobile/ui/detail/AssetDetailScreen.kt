@@ -99,6 +99,8 @@ import com.assetstudio.mobile.ui.preview.MaterialPreview
 import com.assetstudio.mobile.ui.preview.SoundPreview
 import com.assetstudio.mobile.ui.preview.AnyAssetPreview
 import com.assetstudio.mobile.ui.preview.RelatedAssetsPanel
+import com.assetstudio.mobile.ui.preview.AtlasPreview
+import com.assetstudio.mobile.ui.preview.SkinnedBonePreview
 import com.assetstudio.mobile.ui.components.formatBytes
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -241,6 +243,7 @@ fun AssetDetailScreen(
                 } else when (val obj = item.obj) {
                     is Texture2D -> TexturePreview(viewModel, obj)
                     is Sprite -> SpritePreview(viewModel, obj)
+                    is com.assetstudio.mobile.core.classes.SpriteAtlas -> AtlasPreview(viewModel, obj)
                     is Mesh -> MeshPreview(obj)
                     is TextAsset -> TextPreview(obj)
                     is MonoBehaviour -> MonoPreview(obj)
@@ -284,6 +287,9 @@ fun AssetDetailScreen(
                     else -> AnyAssetPreview(obj)
                 }
 
+                if (item.obj is SkinnedMeshRenderer) {
+                    SkinnedBonePreview(item.obj as SkinnedMeshRenderer)
+                }
                 if (item.obj != null) {
                     RelatedAssetsPanel(item, assets, onOpenAsset)
                 }
