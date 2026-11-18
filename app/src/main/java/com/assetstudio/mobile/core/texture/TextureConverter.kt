@@ -11,7 +11,7 @@ package com.assetstudio.mobile.core.texture
  *   RHalf/RGHalf/RGBAHalf/RFloat/RGFloat/RGBAFloat/RGBA4444/BGRA32/YUY2/RGB9e5Float/
  *   RG16/R8/RG32/RGB48/RGBA64/RGBFloat
  * JNI(NativeDecoder): DXT1(BC1)/DXT5(BC3)/BC4/BC5/BC6H/BC7/PVRTC/ETC1/ETC2/EAC/ASTC/ATC/Crunch
- * 未实现: DXT3（C# 中同样未实现）
+ * BC2/DXT3: pure Kotlin explicit alpha decoder (not implemented in upstream C#).
  */
 
 import com.assetstudio.mobile.core.ResourceReader
@@ -77,8 +77,8 @@ class TextureConverter(texture: Texture2D) {
             return false
         }
         var flag = false
-        val buff = imageData.copyOf()
-        swapBytesForXbox(buff)
+        // Avoid duplicating large texture buffers on Android unless Xbox byte swapping mutates them.
+        val buff = if (platform == BuildTarget.XBOX360) imageData.copyOf().also(::swapBytesForXbox) else imageData
         when (m_TextureFormat) {
             TextureFormat.Alpha8 -> flag = decodeAlpha8(buff, image) //test pass
             TextureFormat.ARGB4444 -> flag = decodeARGB4444(buff, image) //test pass
@@ -90,7 +90,7 @@ class TextureConverter(texture: Texture2D) {
             TextureFormat.BGR24 -> flag = decodeBGR24(buff, image)
             TextureFormat.R16 -> flag = decodeR16(buff, image) //test pass
             TextureFormat.DXT1 -> flag = decodeDXT1(buff, image) //test pass
-            TextureFormat.DXT3 -> flag = false //C# 中未实现
+            TextureFormat.DXT3 -> flag = decodeDXT3(buff, image) // BC2 explicit 4-bit alpha
             TextureFormat.DXT5 -> flag = decodeDXT5(buff, image) //test pass
             TextureFormat.RGBA4444 -> flag = decodeRGBA4444(buff, image) //test pass
             TextureFormat.BGRA32 -> flag = decodeBGRA32(buff, image) //test pass
@@ -504,6 +504,12 @@ class TextureConverter(texture: Texture2D) {
 
     private fun decodeDXT1(imageData: ByteArray, image: IntArray): Boolean {
         NativeDecoder.decodeBC1(imageData, m_Width, m_Height, image)
+        return true
+    }
+
+    private fun decodeDXT3(imageData: ByteArray, image: IntArray): Boolean {
+        val pixels = Bc2Decoder.decode(imageData, m_Width, m_Height) ?: return false
+        pixels.copyInto(image)
         return true
     }
 
