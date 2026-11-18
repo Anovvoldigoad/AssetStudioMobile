@@ -92,7 +92,7 @@ import com.assetstudio.mobile.ui.browser.rememberStoragePermission
 import com.assetstudio.mobile.ui.components.InfoRow
 import com.assetstudio.mobile.ui.components.LoadingOverlay
 import com.assetstudio.mobile.ui.components.MeshPreview
-import com.assetstudio.mobile.ui.preview.ClipPreview
+import com.assetstudio.mobile.ui.preview.ClipChannelsPreview
 import com.assetstudio.mobile.ui.preview.RigPreview
 import com.assetstudio.mobile.ui.preview.HeroPreview
 import com.assetstudio.mobile.ui.preview.MaterialPreview
@@ -247,7 +247,7 @@ fun AssetDetailScreen(
                     is Mesh -> MeshPreview(obj)
                     is TextAsset -> TextPreview(obj)
                     is MonoBehaviour -> MonoPreview(obj)
-                    is com.assetstudio.mobile.core.classes.AnimationClip -> ClipPreview(obj)
+                    is com.assetstudio.mobile.core.classes.AnimationClip -> ClipChannelsPreview(obj)
                     is com.assetstudio.mobile.core.classes.Animation -> RigPreview(obj)
                     is com.assetstudio.mobile.core.classes.AnimatorController -> RigPreview(obj)
                     is com.assetstudio.mobile.core.classes.Animator -> RigPreview(obj)
