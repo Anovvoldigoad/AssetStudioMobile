@@ -970,7 +970,15 @@ class MainViewModel : ViewModel() {
             if (dependencyFiles.isNotEmpty()) {
                 val index = DependencyFileIndex.fromFiles(dependencyFiles)
                 manager.externalResourceOpener = { name -> index.readUnique(name) }
-                manager.externalDependencyStatus = { name -> index.inspect(name).state.name }
+                manager.externalResourceSliceOpener = { name, offset, size ->
+                    index.readSlice(name, offset, size)
+                }
+                manager.externalDependencyStatus = { name ->
+                    val state = index.inspect(name).state
+                    if (state == DependencyFileIndex.State.TOO_LARGE &&
+                        index.inspect(name, Long.MAX_VALUE).state == DependencyFileIndex.State.FOUND
+                    ) "STREAM_ONLY" else state.name
+                }
             }
         }
 
