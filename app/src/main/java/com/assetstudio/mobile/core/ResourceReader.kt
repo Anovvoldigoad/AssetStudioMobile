@@ -45,6 +45,7 @@ object ResourceFileResolver {
     fun resolve(assetsFile: SerializedFile, path: String): ByteArray {
         val resourceFileName = getFileName(path)
         val candidate = lookupFromManager(assetsFile, resourceFileName)
+            ?: assetsFile.assetsManager.getResourceFileData(resourceFileName)
             ?: ResourceFileRegistry.lookup(resourceFileName)
             ?: throw FileNotFoundException("Can't find the resource file $resourceFileName")
         return candidate
@@ -52,12 +53,14 @@ object ResourceFileResolver {
 
     /** 从资源文件字节中截取 [offset, offset+size) */
     fun slice(data: ByteArray, offset: Long, size: Long): ByteArray {
-        val start = offset.toInt()
-        if (start < 0 || start > data.size) {
-            throw IOException("Resource offset out of range: offset=$offset, size=${data.size}")
+        if (offset < 0 || size < 0 || offset > data.size.toLong() ||
+            size > data.size.toLong() - offset) {
+            throw IOException(
+                "External resource incomplete: offset=$offset length=$size fileSize=${data.size}"
+            )
         }
-        val end = minOf(start + size.toInt(), data.size)
-        return if (end <= start) ByteArray(0) else data.copyOfRange(start, end)
+        val start = offset.toInt()
+        return data.copyOfRange(start, (offset + size).toInt())
     }
 
     /** 解析流数据：查找资源文件并截取对应区间 */
