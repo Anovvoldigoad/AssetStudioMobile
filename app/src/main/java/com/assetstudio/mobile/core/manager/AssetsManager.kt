@@ -671,7 +671,15 @@ class AssetsManager {
             if (assetsFile !in readObjectFiles) continue
             val hasMono = assetsFile.objects.any { it is MonoBehaviour }
             if (hasMono) continue
+            // Unsupported classes (ParticleSystem, custom assets, etc.) have no
+            // typed parser. Their TypeTree is the ONLY useful inspector, so
+            // preserve just those types instead of stripping every tree.
+            val unknownTypes = assetsFile.objects
+                .filter { it.javaClass == UnityObject::class.java }
+                .mapNotNull { it.serializedType }
+                .toSet()
             for (t in assetsFile.m_Types) {
+                if (t in unknownTypes) continue
                 val tree = t.m_Type ?: continue
                 stripped += tree.m_Nodes.size
                 tree.m_Nodes = ArrayList()
