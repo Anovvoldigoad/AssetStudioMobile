@@ -792,10 +792,19 @@ private fun DetailTopBar(title: String, onBack: () -> Unit) {
 
 @Composable
 private fun TexturePreview(viewModel: MainViewModel, texture: Texture2D) {
-    val bitmap by produceState<Bitmap?>(initialValue = null, texture) {
-        value = viewModel.decodeTexture(texture)
+    val result by produceState<Pair<Bitmap?, String?>>(null to null, texture) {
+        value = viewModel.decodeTextureDetailed(texture)
     }
-    PreviewCard(bitmap, "Pratinjau tekstur")
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        PreviewCard(result.first, "Pratinjau tekstur")
+        Text("Format: ${texture.m_TextureFormat} • ${texture.m_Width} × ${texture.m_Height}",
+            style = MaterialTheme.typography.bodySmall)
+        result.second?.let { reason ->
+            Text("Alasan pratinjau gagal: $reason",
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall)
+        }
+    }
 }
 
 @Composable
